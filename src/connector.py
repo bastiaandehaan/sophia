@@ -8,25 +8,25 @@ from typing import Optional, Dict, Any, List
 
 # Constants for timeframes
 TIMEFRAMES = {"M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
-              "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4, "D1": mt5.TIMEFRAME_D1}
+    "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4, "D1": mt5.TIMEFRAME_D1}
 
 
 class MT5Connector:
     """
-    MetaTrader 5 connector for retrieving market data and executing trades.
+    MetaTrader 5 connector voor het ophalen van marktdata en uitvoeren van orders.
     """
 
     def __init__(self, config: Dict[str, Any]):
         """
-        Initialize the MT5 connector.
+        Initialiseer de MT5 connector.
 
         Args:
-            config: Dictionary containing MT5 connection settings
+            config: Dictionary met MT5 verbindingsinstellingen
         """
         self.config = config
         self.logger = logging.getLogger("sophia")
         self.connected = False
-        self.tf_map = TIMEFRAMES  # Voor testbaarheid
+        self.tf_map = TIMEFRAMES
 
     def _validate_mt5_path(self) -> bool:
         """
@@ -59,10 +59,10 @@ class MT5Connector:
 
     def connect(self) -> bool:
         """
-        Connect to the MT5 platform.
+        Verbind met het MT5 platform.
 
         Returns:
-            bool: True if connection is successful, False otherwise
+            bool: True als verbinding succesvol is, False indien niet
         """
         if self.connected:
             return True
@@ -73,10 +73,10 @@ class MT5Connector:
 
         # Initialize MT5
         mt5_path = self.config.get("mt5_path", "")
-        self.logger.info(f"Connecting to MT5 at path: {mt5_path}")
+        self.logger.info(f"Verbinden met MT5 op pad: {mt5_path}")
 
         if not mt5.initialize(path=mt5_path):
-            self.logger.error(f"MT5 initialization failed: {mt5.last_error()}")
+            self.logger.error(f"MT5 initialisatie mislukt: {mt5.last_error()}")
             return False
 
         # Login to MT5
@@ -85,30 +85,30 @@ class MT5Connector:
         server = self.config.get("server", "")
 
         if not mt5.login(login=login, password=password, server=server):
-            self.logger.error(f"MT5 login failed: {mt5.last_error()}")
+            self.logger.error(f"MT5 login mislukt: {mt5.last_error()}")
             self._shutdown_mt5()
             return False
 
         self.connected = True
-        self.logger.info("Connected to MT5 successfully")
+        self.logger.info("Succesvol verbonden met MT5")
         return True
 
     def disconnect(self) -> bool:
         """
-        Disconnect from the MT5 platform.
+        Verbreek verbinding met het MT5 platform.
 
         Returns:
-            bool: True if disconnection was successful
+            bool: True als verbinding succesvol verbroken is
         """
         if self.connected:
             self._shutdown_mt5()
-            self.logger.info("Disconnected from MT5")
+            self.logger.info("Verbinding met MT5 verbroken")
             return True
         return False
 
     def _shutdown_mt5(self) -> None:
         """
-        Safely shut down the MT5 connection.
+        Sluit de MT5 verbinding veilig af.
         """
         mt5.shutdown()
         self.connected = False
@@ -116,29 +116,29 @@ class MT5Connector:
     def get_historical_data(self, symbol: str, timeframe: str, bars_count: int = 100) -> \
     Optional[pd.DataFrame]:
         """
-        Retrieve historical price data from MT5.
+        Haal historische prijsdata op van MT5.
 
         Args:
-            symbol: The trading instrument symbol (e.g. "EURUSD")
-            timeframe: The timeframe as string (e.g. "M1", "H1", "D1")
-            bars_count: Number of bars to retrieve
+            symbol: Het handelsinstrument symbool (bijv. "EURUSD")
+            timeframe: De timeframe als string (bijv. "M1", "H1", "D1")
+            bars_count: Aantal bars om op te halen
 
         Returns:
-            pd.DataFrame: DataFrame with historical data or None if retrieval failed
+            pd.DataFrame: DataFrame met historische data of None als ophalen mislukt
         """
         if not self.connected and not self.connect():
             return None
 
-        # Get timeframe constant from mapping
-        tf = TIMEFRAMES.get(timeframe, mt5.TIMEFRAME_D1)
+        # Converteer timeframe string naar MT5 constante
+        tf = self.tf_map.get(timeframe, mt5.TIMEFRAME_D1)
 
-        # Retrieve data
+        # Haal data op
         rates = mt5.copy_rates_from_pos(symbol, tf, 0, bars_count)
-        if rates is None:
-            self.logger.error(f"No data received for {symbol}")
+        if rates is None or len(rates) == 0:
+            self.logger.error(f"Geen data ontvangen voor {symbol}")
             return None
 
-        # Convert to DataFrame and format time
+        # Converteer naar DataFrame en formatteer tijd
         df = pd.DataFrame(rates)
         df['time'] = pd.to_datetime(df['time'], unit='s')
         return df
@@ -226,8 +226,8 @@ class MT5Connector:
             result = mt5.order_send(request)
 
             if result.retcode != mt5.TRADE_RETCODE_DONE:
-                self.logger.error(f"Order failed with error code: {result.retcode}")
-                return {"success": False, "error": f"Order failed: {result.retcode}"}
+                self.logger.error(f"Order mislukt met code: {result.retcode}")
+                return {"success": False, "error": f"Order mislukt: {result.retcode}"}
 
             # Order gelukt
             self.logger.info(f"Order geplaatst: Ticket #{result.order}")
@@ -300,3 +300,90 @@ class MT5Connector:
         except Exception as e:
             self.logger.error(f"Fout bij ophalen open posities: {e}")
             return {}
+
+    def close_position(self, symbol: str) -> Dict[str, Any]:
+        """
+        Sluit een open positie voor het opgegeven symbool.
+
+        Args:
+            symbol: Handelssymbool waarvoor de positie gesloten moet worden
+
+        Returns:
+            Dict met resultaat van de sluitingsoperatie
+        """
+        if not self.connected and not self.connect():
+            self.logger.error("Niet verbonden met MT5")
+            return {"success": False, "error": "Niet verbonden met MT5"}
+
+        try:
+            # Haal huidige positie op
+            position = self.get_position(symbol)
+            if not position:
+                return {"success": False, "error": f"Geen open positie voor {symbol}"}
+
+            # Bepaal tegengestelde order type voor sluiting
+            close_type = "SELL" if position["direction"] == "BUY" else "BUY"
+
+            # Haal huidige marktprijzen op
+            tick = mt5.symbol_info_tick(symbol)
+            if not tick:
+                return {"success": False,
+                        "error": f"Kon prijsgegevens niet ophalen voor {symbol}"}
+
+            # Gebruik ask voor BUY en bid voor SELL
+            close_price = tick.ask if close_type == "BUY" else tick.bid
+
+            # Stel order request samen voor het sluiten van de positie
+            request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": symbol,
+                "volume": position["volume"],
+                "type": mt5.ORDER_TYPE_BUY if close_type == "BUY" else mt5.ORDER_TYPE_SELL,
+                "position": int(position.get("ticket", 0)),
+                # Ticket ID van de te sluiten positie
+                "price": close_price, "deviation": 20, "magic": 123456,
+                "comment": f"Sophia sluiting {position['direction']} positie",
+                "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC}
+
+            # Verstuur sluitingsorder
+            self.logger.info(
+                f"Positie sluiten: {symbol} {position['direction']} {position['volume']} lots")
+            result = mt5.order_send(request)
+
+            if result.retcode != mt5.TRADE_RETCODE_DONE:
+                self.logger.error(f"Positie sluiten mislukt met code: {result.retcode}")
+                return {"success": False,
+                        "error": f"Positie sluiten mislukt: {result.retcode}"}
+
+            self.logger.info(f"Positie gesloten: {symbol} - Ticket #{result.order}")
+            return {"success": True, "order_id": str(result.order), "symbol": symbol,
+                "closed_volume": position["volume"], "close_price": close_price}
+
+        except Exception as e:
+            self.logger.error(f"Fout bij sluiten positie: {e}")
+            return {"success": False, "error": str(e)}
+
+    def get_available_symbols(self) -> List[str]:
+        """
+        Haalt de lijst met beschikbare handelssymbolen op.
+
+        Returns:
+            List[str]: Lijst met beschikbare symbolen
+        """
+        if not self.connected and not self.connect():
+            return []
+
+        try:
+            # Haal alle symbolen op
+            symbols = mt5.symbols_get()
+            if not symbols:
+                self.logger.warning("Geen symbolen gevonden")
+                return []
+
+            # Filter op forex symbolen (als voorbeeld)
+            forex_symbols = [symbol.name for symbol in symbols if symbol.visible and (
+                        len(symbol.name) == 6 or "/" in symbol.name)]
+
+            return forex_symbols
+
+        except Exception as e:
+            self.logger.error(f"Fout bij ophalen beschikbare symbolen: {e}")
+            return []

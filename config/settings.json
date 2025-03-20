@@ -5,7 +5,7 @@
     "server": "FTMO-Demo2",
     "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe"
   },
-  "symbols": ["EURUSD", "GBPUSD"],
+  "symbols": ["EURUSD", "USDJPY"],
   "timeframe": "H4",
   "interval": 300,
   "risk": {
@@ -15,6 +15,9 @@
   "strategy": {
     "entry_period": 20,
     "exit_period": 10,
-    "atr_period": 14
+    "atr_period": 14,
+    "vol_filter": true,
+    "vol_lookback": 100,
+    "vol_threshold": 1.2
   }
 }

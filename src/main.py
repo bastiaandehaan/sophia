@@ -3,7 +3,9 @@ import sys
 import os
 import time
 import traceback
+import signal
 from datetime import datetime
+from typing import Dict, Any, List, Optional
 
 # Voeg project root toe aan Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11,221 +13,249 @@ project_root = os.path.dirname(script_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.utils import setup_logging, load_config
+from src.utils import setup_logging, load_config, save_config
 from src.connector import MT5Connector
 from src.risk import RiskManager
 from src.strategy import TurtleStrategy
 
 
-def main():
-    """Hoofdfunctie voor de Sophia trading applicatie"""
-    # Setup logging
-    logger = setup_logging()
-    logger.info("====== Sophia Trading System ======")
-    logger.info(f"Opgestart op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+class SophiaTrader:
+    """
+    Hoofdklasse voor de Sophia trading applicatie.
+    Beheert de levenscyclus van de trading applicatie en coördineert componenten.
+    """
 
-    # Ensure config directory exists
-    config_dir = os.path.join(project_root, "config")
-    os.makedirs(config_dir, exist_ok=True)
-    config_path = os.path.join(config_dir, "settings.json")
+    def __init__(self):
+        """
+        Initialiseer de Sophia Trader applicatie.
+        """
+        # Setup logging
+        self.logger = setup_logging()
+        self.logger.info("====== Sophia Trading System ======")
+        self.logger.info(f"Opgestart op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # Create default config if it doesn't exist
-    if not os.path.exists(config_path):
-        logger.warning(
-            f"Configuratiebestand niet gevonden op {config_path}, standaardconfiguratie wordt gebruikt")
-        default_config = {"mt5": {"server": "Demo Server", "login": 12345678,
-                                  "password": "demo_password", "timeout": 10000},
-                          "risk": {"risk_per_trade": 0.01, "max_daily_loss": 0.05},
-                          "strategy": {"atr_period": 14, "entry_atr_multiplier": 1.0,
-                                       "exit_atr_multiplier": 2.0}, "symbols": ["EURUSD"], "interval": 60}
+        # Configuratie laden
+        self.config_path = os.path.join(project_root, "config", "settings.json")
+        self.config = self._load_configuration()
 
+        # Componenten
+        self.connector = None
+        self.risk_manager = None
+        self.strategy = None
+
+        # State tracking
+        self.running = False
+        self.last_run_time = time.time()
+
+    def _load_configuration(self) -> Dict[str, Any]:
+        """
+        Laad configuratie en maak de standaardconfiguratie indien nodig.
+
+        Returns:
+            Dict met configuratie-instellingen
+        """
+        # Zorg dat config directory bestaat
+        config_dir = os.path.dirname(self.config_path)
+        os.makedirs(config_dir, exist_ok=True)
+
+        # Maak standaardconfiguratie als deze niet bestaat
+        if not os.path.exists(self.config_path):
+            self.logger.warning(
+                f"Configuratiebestand niet gevonden, standaardconfiguratie wordt gemaakt")
+
+            default_config = {"mt5": {"server": "FTMO-Demo2", "login": 1520533067,
+                "password": "UP7d??y4Wg",
+                "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe"},
+                "symbols": ["EURUSD", "USDJPY"], "timeframe": "H4", "interval": 300,
+                "risk": {"risk_per_trade": 0.01, "max_daily_loss": 0.05},
+                "strategy": {"entry_period": 20, "exit_period": 10, "atr_period": 14,
+                    "vol_filter": True, "vol_lookback": 100, "vol_threshold": 1.2}}
+
+            # Sla standaardconfiguratie op
+            if save_config(default_config, self.config_path):
+                self.logger.info(
+                    f"Standaardconfiguratie aangemaakt op {self.config_path}")
+                return default_config
+            else:
+                self.logger.error("Kon standaardconfiguratie niet opslaan")
+                return {}
+
+        # Laad bestaande configuratie
+        config = load_config(self.config_path)
+        if not config:
+            self.logger.error("Kon configuratie niet laden, stoppen...")
+            return {}
+
+        return config
+
+    def initialize_components(self) -> bool:
+        """
+        Initialiseer alle componenten met foutafhandeling.
+
+        Returns:
+            bool: True als initialisatie succesvol was
+        """
         try:
-            import json
-            with open(config_path, "w") as f:
-                json.dump(default_config, f, indent=4)
-            logger.info(f"Standaardconfiguratie aangemaakt op {config_path}")
-        except Exception as e:
-            logger.error(f"Kon standaardconfiguratie niet aanmaken: {e}")
+            # Maak componenten aan
+            self.connector = MT5Connector(self.config.get("mt5", {}))
 
-    # Laad configuratie
-    config = load_config(config_path)
-    if not config:
-        logger.error("Kon configuratie niet laden, stoppen...")
-        return 1
+            # Verbinding maken met MT5
+            connect_attempts = 0
+            max_attempts = 3
 
-    # Initialisatie van componenten met foutafhandeling
-    try:
-        # Maak componenten aan
-        connector = MT5Connector(config.get("mt5", {}))
+            while connect_attempts < max_attempts:
+                if self.connector.connect():
+                    break
 
-        # Verbinding maken met MT5
-        connect_attempts = 0
-        max_attempts = 3
-        while connect_attempts < max_attempts:
-            if connector.connect():
-                break
-            connect_attempts += 1
-            logger.warning(
-                f"Poging {connect_attempts}/{max_attempts} om verbinding te maken met MT5 mislukt. Opnieuw proberen...")
-            time.sleep(5)
-
-        if connect_attempts >= max_attempts:
-            logger.error(
-                "Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen...")
-            return 1
-
-        # Haal account informatie op van MT5 in plaats van hardcoded waarde
-        try:
-            account_info = connector.get_account_info()
-            if not account_info or "balance" not in account_info:
-                logger.warning(
-                    "Kon account informatie niet ophalen, gebruik standaard waarden")
-                account_info = {"balance": 10000, "currency": "USD"}
-        except Exception as e:
-            logger.error(f"Fout bij ophalen account informatie: {e}")
-            account_info = {"balance": 10000, "currency": "USD"}
-
-        logger.info(
-            f"Account balans: {account_info['balance']} {account_info.get('currency', '')}")
-
-        # Initialiseer risicomanager en strategie
-        risk_manager = RiskManager(config.get("risk", {}))
-        strategy = TurtleStrategy(connector, risk_manager, config.get("strategy", {}))
-
-        # Zorg ervoor dat positions dictionary bestaat
-        if not hasattr(strategy, "positions") or strategy.positions is None:
-            strategy.positions = {}
-
-    except Exception as e:
-        logger.error(f"Fout bij initialisatie componenten: {e}")
-        logger.debug(traceback.format_exc())
-        return 1
-
-    # Trading loop
-    try:
-        symbols = config.get("symbols", ["EURUSD"])
-        logger.info(f"Start trading voor symbolen: {symbols}")
-
-        running = True
-        last_run_time = time.time()
-
-        while running:
-            start_time = time.time()
-
-            try:
-                # Verwerk alle symbolen
-                for symbol in symbols:
-                    try:
-                        # Check voor signalen
-                        result = strategy.check_signals(symbol)
-
-                        if result and result.get("signal"):
-                            signal = result["signal"]
-                            meta = result.get("meta", {})
-
-                            if signal in ["BUY", "SELL"]:
-                                entry_price = meta.get("entry_price", 0)
-                                stop_loss = meta.get("stop_loss", 0)
-
-                                # Valideer entry en stop-loss
-                                if entry_price <= 0 or stop_loss <= 0:
-                                    logger.warning(
-                                        f"Ongeldige entry of stop-loss voor {symbol}: Entry={entry_price}, SL={stop_loss}")
-                                    continue
-
-                                # Bereken positiegrootte
-                                position_size = risk_manager.calculate_position_size(
-                                    account_info["balance"], entry_price, stop_loss)
-
-                                if position_size <= 0:
-                                    logger.warning(
-                                        f"Ongeldige positiegrootte berekend voor {symbol}: {position_size}")
-                                    continue
-
-                                # Probeer order te plaatsen
-                                try:
-                                    # Hier zou een echte order plaatsingscode komen
-                                    # order_result = connector.place_order(symbol, signal, position_size, entry_price, stop_loss)
-                                    order_result = {"success": True,
-                                                    "order_id": 12345}  # Placeholder
-
-                                    if order_result and order_result.get("success"):
-                                        logger.info(
-                                            f"Order geplaatst: {signal} {position_size} lots {symbol} @ "
-                                            f"{entry_price} SL: {stop_loss}")
-
-                                        # Update positie tracking
-                                        strategy.positions[symbol] = {
-                                            "direction": signal,
-                                            "entry_price": entry_price,
-                                            "stop_loss": stop_loss,
-                                            "size": position_size,
-                                            "entry_time": datetime.now(),
-                                            "order_id": order_result.get("order_id")}
-                                    else:
-                                        logger.error(
-                                            f"Order plaatsen mislukt voor {symbol}: {order_result}")
-                                except Exception as e:
-                                    logger.error(
-                                        f"Fout bij order plaatsen voor {symbol}: {e}")
-
-                            elif signal in ["CLOSE_BUY", "CLOSE_SELL"]:
-                                if symbol in strategy.positions:
-                                    try:
-                                        # Hier zou een echte ordersluitingscode komen
-                                        # close_result = connector.close_position(symbol, strategy.positions[symbol])
-                                        close_result = {"success": True}  # Placeholder
-
-                                        if close_result and close_result.get("success"):
-                                            logger.info(f"Positie gesloten: {symbol}")
-                                            # Verwijder positie uit tracking
-                                            del strategy.positions[symbol]
-                                        else:
-                                            logger.error(
-                                                f"Positie sluiten mislukt voor {symbol}: {close_result}")
-                                    except Exception as e:
-                                        logger.error(
-                                            f"Fout bij sluiten positie voor {symbol}: {e}")
-                    except Exception as e:
-                        logger.error(f"Fout bij verwerken signalen voor {symbol}: {e}")
-                        logger.debug(traceback.format_exc())
-
-                # Wacht voor volgende iteratie, gecorrigeerd voor verwerkingstijd
-                interval = config.get("interval", 60)  # Seconden
-                elapsed = time.time() - start_time
-                wait_time = max(0.1,
-                                interval - elapsed)  # Minimaal 0.1 seconden wachten
-
-                logger.info(f"Wacht {wait_time:.1f} seconden tot volgende check...")
-                time.sleep(wait_time)
-
-            except Exception as e:
-                logger.error(f"Onverwachte fout in hoofdloop: {e}")
-                logger.debug(traceback.format_exc())
-                # Kleine pauze om CPU-verbruik te beperken bij herhaalde fouten
+                connect_attempts += 1
+                self.logger.warning(
+                    f"Poging {connect_attempts}/{max_attempts} om verbinding te maken met MT5 mislukt. Opnieuw proberen...")
                 time.sleep(5)
 
-    except KeyboardInterrupt:
-        logger.info("Programma gestopt door gebruiker")
-    except Exception as e:
-        logger.critical(f"Kritieke fout in programma: {e}")
-        logger.debug(traceback.format_exc())
-    finally:
-        # Sluit verbinding en maak resources vrij
+            if connect_attempts >= max_attempts:
+                self.logger.error(
+                    "Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen...")
+                return False
+
+            # Haal account informatie op
+            try:
+                account_info = self.connector.get_account_info()
+                if not account_info or "balance" not in account_info:
+                    self.logger.warning(
+                        "Kon account informatie niet ophalen, gebruik standaard waarden")
+                    account_info = {"balance": 10000, "currency": "USD"}
+            except Exception as e:
+                self.logger.error(f"Fout bij ophalen account informatie: {e}")
+                account_info = {"balance": 10000, "currency": "USD"}
+
+            self.logger.info(
+                f"Account balans: {account_info['balance']} {account_info.get('currency', '')}")
+
+            # Initialiseer risicomanager en strategie
+            self.risk_manager = RiskManager(self.config.get("risk", {}))
+            self.strategy = TurtleStrategy(self.connector, self.risk_manager,
+                                           self.config.get("strategy", {}))
+
+            # Zorg ervoor dat positions dictionary bestaat
+            if not hasattr(self.strategy,
+                           "positions") or self.strategy.positions is None:
+                self.strategy.positions = {}
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Fout bij initialisatie componenten: {e}")
+            self.logger.debug(traceback.format_exc())
+            return False
+
+    def run(self):
+        """
+        Start de hoofdtrading loop.
+        """
+        if not self.initialize_components():
+            return 1
+
+        # Set up signal handler voor graceful shutdown
+        signal.signal(signal.SIGINT, self._signal_handler)
+
+        # Start trading loop
         try:
-            if connector:
-                disconnect_success = connector.disconnect()
-                if disconnect_success:
-                    logger.info("Verbinding met MT5 succesvol gesloten")
+            symbols = self.config.get("symbols", ["EURUSD", "USDJPY"])
+            self.logger.info(f"Start trading voor symbolen: {symbols}")
+
+            self.running = True
+
+            while self.running:
+                start_time = time.time()
+
+                try:
+                    # Verwerk alle symbolen
+                    for symbol in symbols:
+                        self._process_symbol(symbol)
+
+                    # Wacht voor volgende iteratie, gecorrigeerd voor verwerkingstijd
+                    interval = self.config.get("interval", 300)  # Seconden
+                    elapsed = time.time() - start_time
+                    wait_time = max(0.1,
+                                    interval - elapsed)  # Minimaal 0.1 seconden wachten
+
+                    self.logger.info(
+                        f"Wacht {wait_time:.1f} seconden tot volgende check...")
+                    time.sleep(wait_time)
+
+                except Exception as e:
+                    self.logger.error(f"Onverwachte fout in hoofdloop: {e}")
+                    self.logger.debug(traceback.format_exc())
+                    # Kleine pauze om CPU-verbruik te beperken bij herhaalde fouten
+                    time.sleep(5)
+
+        except KeyboardInterrupt:
+            self.logger.info("Programma gestopt door gebruiker")
+        except Exception as e:
+            self.logger.critical(f"Kritieke fout in programma: {e}")
+            self.logger.debug(traceback.format_exc())
+        finally:
+            self._cleanup()
+
+        return 0
+
+    def _process_symbol(self, symbol: str):
+        """
+        Verwerk een specifiek handelssymbool.
+
+        Args:
+            symbol: Handelssymbool om te verwerken
+        """
+        try:
+            # Check voor signalen
+            result = self.strategy.check_signals(symbol)
+
+            if result and result.get("signal"):
+                signal = result["signal"]
+                meta = result.get("meta", {})
+
+                # Voer signaal uit
+                execution_result = self.strategy.execute_signal(result)
+
+                if execution_result and execution_result.get("success"):
+                    self.logger.info(f"Signaal succesvol uitgevoerd: {symbol} {signal}")
                 else:
-                    logger.warning(
+                    self.logger.warning(
+                        f"Signaal uitvoering mislukt: {symbol} {signal} - Reden: {execution_result.get('reason', 'onbekend')}")
+
+        except Exception as e:
+            self.logger.error(f"Fout bij verwerken signalen voor {symbol}: {e}")
+            self.logger.debug(traceback.format_exc())
+
+    def _signal_handler(self, sig, frame):
+        """
+        Handler voor SIGINT/SIGTERM signalen voor netjes afsluiten.
+        """
+        self.logger.info("Afsluitsignaal ontvangen, bezig met stoppen...")
+        self.running = False
+
+    def _cleanup(self):
+        """
+        Sluit resources netjes af.
+        """
+        try:
+            if self.connector:
+                disconnect_success = self.connector.disconnect()
+                if disconnect_success:
+                    self.logger.info("Verbinding met MT5 succesvol gesloten")
+                else:
+                    self.logger.warning(
                         "Kon verbinding met MT5 mogelijk niet correct sluiten")
         except Exception as e:
-            logger.error(f"Fout bij afsluiten verbinding: {e}")
+            self.logger.error(f"Fout bij afsluiten verbinding: {e}")
 
-        logger.info("Sophia Trading System afgesloten")
+        self.logger.info("Sophia Trading System afgesloten")
 
-    return 0
+
+def main():
+    """Hoofdfunctie voor de Sophia trading applicatie"""
+    trader = SophiaTrader()
+    return trader.run()
 
 
 if __name__ == "__main__":
