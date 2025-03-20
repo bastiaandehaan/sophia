@@ -1,0 +1,92 @@
+2025-03-20 19:52:38,181 - INFO - ====== Sophia Trading System ======
+2025-03-20 19:52:38,181 - INFO - Opgestart op 2025-03-20 19:52:38
+2025-03-20 19:52:38,181 - ERROR - Fout bij laden configuratie: [Errno 2] No such file or directory: 'config/settings.json'
+2025-03-20 19:52:38,181 - ERROR - Kon configuratie niet laden, stoppen...
+2025-03-20 19:56:06,880 - INFO - ====== Sophia Trading System ======
+2025-03-20 19:56:06,880 - INFO - Opgestart op 2025-03-20 19:56:06
+2025-03-20 19:56:06,881 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 19:56:06,882 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 19:56:06,883 - WARNING - Poging 1/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 19:56:11,884 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 19:56:11,884 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 19:56:11,884 - WARNING - Poging 2/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 19:56:16,885 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 19:56:16,886 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 19:56:16,886 - WARNING - Poging 3/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 19:56:21,887 - ERROR - Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen...
+2025-03-20 20:05:15,439 - INFO - ====== Sophia Trading System ======
+2025-03-20 20:05:15,439 - INFO - Opgestart op 2025-03-20 20:05:15
+2025-03-20 20:05:15,440 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 20:05:15,442 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 20:05:15,442 - WARNING - Poging 1/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 20:05:20,443 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 20:05:20,444 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 20:05:20,444 - WARNING - Poging 2/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 20:05:25,445 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 20:05:25,446 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 20:05:25,446 - WARNING - Poging 3/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 20:05:30,447 - ERROR - Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen...
+2025-03-20 20:06:46,608 - INFO - ====== Sophia Trading System ======
+2025-03-20 20:06:46,608 - INFO - Opgestart op 2025-03-20 20:06:46
+2025-03-20 20:06:46,608 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 20:06:46,610 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 20:06:46,610 - WARNING - Poging 1/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 20:06:51,611 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 20:06:51,612 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 20:06:51,612 - WARNING - Poging 2/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 20:06:56,613 - INFO - Connecting to MT5 at path: C:\Program Files\MetaTrader 5\terminal64.exe
+2025-03-20 20:06:56,614 - ERROR - MT5 initialization failed: (-10003, "IPC initialize failed, Process create failed 'C:\\Program Files\\MetaTrader 5\\terminal64.exe'")
+2025-03-20 20:06:56,614 - WARNING - Poging 3/3 om verbinding te maken met MT5 mislukt. Opnieuw proberen...
+2025-03-20 20:07:01,615 - ERROR - Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen...
+2025-03-20 20:12:04,814 - INFO - ====== Sophia Trading System ======
+2025-03-20 20:12:04,814 - INFO - Opgestart op 2025-03-20 20:12:04
+2025-03-20 20:12:04,815 - INFO - Connecting to MT5 at path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+2025-03-20 20:12:04,818 - INFO - Connected to MT5 successfully
+2025-03-20 20:12:04,818 - ERROR - Fout bij ophalen account informatie: 'MT5Connector' object has no attribute 'get_account_info'
+2025-03-20 20:12:04,818 - INFO - Account balans: 10000 USD
+2025-03-20 20:12:04,818 - INFO - Start trading voor symbolen: ['EURUSD', 'GBPUSD']
+2025-03-20 20:12:17,801 - INFO - Wacht 287.0 seconden tot volgende check...
+2025-03-20 20:17:04,826 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 20:17:20,301 - INFO - Programma gestopt door gebruiker
+2025-03-20 20:17:20,302 - INFO - Disconnected from MT5
+2025-03-20 20:17:20,302 - WARNING - Kon verbinding met MT5 mogelijk niet correct sluiten
+2025-03-20 20:17:20,302 - INFO - Sophia Trading System afgesloten
+2025-03-20 20:21:31,074 - INFO - ====== Sophia Trading System ======
+2025-03-20 20:21:31,074 - INFO - Opgestart op 2025-03-20 20:21:31
+2025-03-20 20:21:31,075 - INFO - Connecting to MT5 at path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+2025-03-20 20:21:31,078 - INFO - Connected to MT5 successfully
+2025-03-20 20:21:31,078 - INFO - Account info opgehaald: Balans=79997.56 EUR
+2025-03-20 20:21:31,078 - INFO - Account balans: 79997.56 EUR
+2025-03-20 20:21:31,079 - INFO - Start trading voor symbolen: ['EURUSD', 'GBPUSD']
+2025-03-20 20:21:31,087 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 20:22:05,781 - INFO - Programma gestopt door gebruiker
+2025-03-20 20:22:05,781 - INFO - Disconnected from MT5
+2025-03-20 20:22:05,781 - INFO - Verbinding met MT5 succesvol gesloten
+2025-03-20 20:22:05,781 - INFO - Sophia Trading System afgesloten
+2025-03-20 20:30:54,390 - INFO - ====== Sophia Trading System ======
+2025-03-20 20:30:54,390 - INFO - Opgestart op 2025-03-20 20:30:54
+2025-03-20 20:30:54,391 - INFO - Connecting to MT5 at path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+2025-03-20 20:30:56,998 - INFO - Connected to MT5 successfully
+2025-03-20 20:30:56,999 - INFO - Account info opgehaald: Balans=79997.56 EUR
+2025-03-20 20:30:56,999 - INFO - Account balans: 79997.56 EUR
+2025-03-20 20:30:56,999 - INFO - Start trading voor symbolen: ['EURUSD', 'GBPUSD']
+2025-03-20 20:30:57,031 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 20:33:28,293 - INFO - Programma gestopt door gebruiker
+2025-03-20 20:33:28,293 - INFO - Disconnected from MT5
+2025-03-20 20:33:28,293 - INFO - Verbinding met MT5 succesvol gesloten
+2025-03-20 20:33:28,293 - INFO - Sophia Trading System afgesloten
+2025-03-20 20:44:53,725 - INFO - ====== Sophia Trading System ======
+2025-03-20 20:44:53,725 - INFO - Opgestart op 2025-03-20 20:44:53
+2025-03-20 20:44:53,726 - INFO - Connecting to MT5 at path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+2025-03-20 20:44:53,728 - INFO - Connected to MT5 successfully
+2025-03-20 20:44:53,728 - INFO - Account info opgehaald: Balans=79997.56 EUR
+2025-03-20 20:44:53,728 - INFO - Account balans: 79997.56 EUR
+2025-03-20 20:44:53,728 - INFO - Start trading voor symbolen: ['EURUSD', 'GBPUSD']
+2025-03-20 20:44:53,756 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 20:49:53,738 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 22:08:32,167 - INFO - Wacht 299.6 seconden tot volgende check...
+2025-03-20 22:13:31,807 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 22:15:50,782 - INFO - Programma gestopt door gebruiker
+2025-03-20 22:15:50,782 - INFO - Disconnected from MT5
+2025-03-20 22:15:50,782 - INFO - Verbinding met MT5 succesvol gesloten
+2025-03-20 22:15:50,782 - INFO - Sophia Trading System afgesloten

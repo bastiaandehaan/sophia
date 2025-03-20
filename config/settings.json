@@ -1,0 +1,20 @@
+{
+  "mt5": {
+    "login": 1520533067,
+    "password": "UP7d??y4Wg",
+    "server": "FTMO-Demo2",
+    "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe"
+  },
+  "symbols": ["EURUSD", "GBPUSD"],
+  "timeframe": "H4",
+  "interval": 300,
+  "risk": {
+    "risk_per_trade": 0.01,
+    "max_daily_loss": 0.05
+  },
+  "strategy": {
+    "entry_period": 20,
+    "exit_period": 10,
+    "atr_period": 14
+  }
+}
