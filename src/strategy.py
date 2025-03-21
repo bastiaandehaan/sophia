@@ -54,37 +54,38 @@ class TurtleStrategy:
         df = data.copy()
 
         # Donchian Channel voor entry
-        df['entry_high'] = df['high'].rolling(window=self.entry_period).max()
-        df['entry_low'] = df['low'].rolling(window=self.entry_period).min()
+        df["entry_high"] = df["high"].rolling(window=self.entry_period).max()
+        df["entry_low"] = df["low"].rolling(window=self.entry_period).min()
 
         # Donchian Channel voor exit
-        df['exit_high'] = df['high'].rolling(window=self.exit_period).max()
-        df['exit_low'] = df['low'].rolling(window=self.exit_period).min()
+        df["exit_high"] = df["high"].rolling(window=self.exit_period).max()
+        df["exit_low"] = df["low"].rolling(window=self.exit_period).min()
 
         # ATR berekening
-        high_low = df['high'] - df['low']
-        high_close = np.abs(df['high'] - df['close'].shift())
-        low_close = np.abs(df['low'] - df['close'].shift())
+        high_low = df["high"] - df["low"]
+        high_close = np.abs(df["high"] - df["close"].shift())
+        low_close = np.abs(df["low"] - df["close"].shift())
 
         ranges = pd.concat([high_low, high_close, low_close], axis=1)
         true_range = np.max(ranges, axis=1)
-        df['atr'] = true_range.rolling(window=self.atr_period).mean()
+        df["atr"] = true_range.rolling(window=self.atr_period).mean()
 
         # Volatiliteitsfilter (moderne toevoeging)
         if self.use_vol_filter and len(df) > self.vol_lookback:
             # Bereken recente gemiddelde ATR
-            recent_atr = df['atr'].iloc[-self.vol_lookback:].mean()
+            recent_atr = df["atr"].iloc[-self.vol_lookback :].mean()
             # Huidige ATR
-            current_atr = df['atr'].iloc[-1]
+            current_atr = df["atr"].iloc[-1]
             # True als markt voldoende volatiel is
-            df['vol_filter'] = current_atr > (recent_atr * self.vol_threshold)
+            df["vol_filter"] = current_atr > (recent_atr * self.vol_threshold)
         else:
-            df['vol_filter'] = True  # Standaard aan wanneer niet genoeg data
+            df["vol_filter"] = True  # Standaard aan wanneer niet genoeg data
 
         return df
 
-    def check_signals(self, symbol: str, data: Optional[pd.DataFrame] = None) -> Dict[
-        str, Any]:
+    def check_signals(
+        self, symbol: str, data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Controleer op handelssignalen.
 
@@ -97,43 +98,53 @@ class TurtleStrategy:
         """
         if data is None:
             # Haal data op als deze niet is meegegeven
-            data = self.connector.get_historical_data(symbol,
-                                                      self.config.get("timeframe",
-                                                                      "H4"),
-                                                      self.entry_period + 50)
+            data = self.connector.get_historical_data(
+                symbol, self.config.get("timeframe", "H4"), self.entry_period + 50
+            )
 
             if data is None or len(data) < self.entry_period + 20:
                 self.logger.error(f"Onvoldoende data beschikbaar voor {symbol}")
-                return {"symbol": symbol, "signal": None, "meta": {},
-                        "timestamp": datetime.now()}
+                return {
+                    "symbol": symbol,
+                    "signal": None,
+                    "meta": {},
+                    "timestamp": datetime.now(),
+                }
 
         # Bereken indicators
         data = self.calculate_indicators(data)
 
         # Controleer of we een positie hebben
         position = self.positions.get(symbol)
-        current_direction = position['direction'] if position else None
+        current_direction = position["direction"] if position else None
 
         # Verzamel indicators voor signaal generatie
-        indicators = {"current_price": data['close'].iloc[-1],
-            "previous_entry_high": data['entry_high'].iloc[-2],
-            "previous_entry_low": data['entry_low'].iloc[-2],
-            "previous_exit_high": data['exit_high'].iloc[-2],
-            "previous_exit_low": data['exit_low'].iloc[-2],
-            "current_atr": data['atr'].iloc[-1], "vol_filter": data['vol_filter'].iloc[
-                -1] if 'vol_filter' in data.columns else True,
-            "trend_up": data['close'].iloc[-1] > data['close'].iloc[-20],
+        indicators = {
+            "current_price": data["close"].iloc[-1],
+            "previous_entry_high": data["entry_high"].iloc[-2],
+            "previous_entry_low": data["entry_low"].iloc[-2],
+            "previous_exit_high": data["exit_high"].iloc[-2],
+            "previous_exit_low": data["exit_low"].iloc[-2],
+            "current_atr": data["atr"].iloc[-1],
+            "vol_filter": (
+                data["vol_filter"].iloc[-1] if "vol_filter" in data.columns else True
+            ),
+            "trend_up": data["close"].iloc[-1] > data["close"].iloc[-20],
             # Eenvoudige trendfilter
-            "trend_down": data['close'].iloc[-1] < data['close'].iloc[-20]
+            "trend_down": data["close"].iloc[-1] < data["close"].iloc[-20],
             # Eenvoudige trendfilter
         }
 
         # Genereer signaal
         return self._generate_signal(symbol, data, indicators, current_direction)
 
-    def _generate_signal(self, symbol: str, data: pd.DataFrame,
-                         indicators: Dict[str, Any],
-                         current_direction: Optional[str]) -> Dict[str, Any]:
+    def _generate_signal(
+        self,
+        symbol: str,
+        data: pd.DataFrame,
+        indicators: Dict[str, Any],
+        current_direction: Optional[str],
+    ) -> Dict[str, Any]:
         """
         Genereer een handelssignaal op basis van de berekende indicators.
 
@@ -159,9 +170,12 @@ class TurtleStrategy:
 
         # Controleer volatiliteitsfilter eerst
         if self.use_vol_filter and not vol_filter:
-            return {"symbol": symbol, "signal": None,
-                    "meta": {"reason": "insufficient_volatility"},
-                    "timestamp": datetime.now()}
+            return {
+                "symbol": symbol,
+                "signal": None,
+                "meta": {"reason": "insufficient_volatility"},
+                "timestamp": datetime.now(),
+            }
 
         # Entry logica - als we geen positie hebben
         if current_direction is None:
@@ -170,16 +184,24 @@ class TurtleStrategy:
                 signal = "BUY"
                 entry_price = prev_entry_high
                 stop_loss = entry_price - (2 * current_atr)
-                meta = {"entry_price": entry_price, "stop_loss": stop_loss,
-                        "reason": "long_entry_breakout", "atr": current_atr}
+                meta = {
+                    "entry_price": entry_price,
+                    "stop_loss": stop_loss,
+                    "reason": "long_entry_breakout",
+                    "atr": current_atr,
+                }
 
             # Short entry (breakout onder entry_low)
             elif current_price < prev_entry_low and indicators.get("trend_down", True):
                 signal = "SELL"
                 entry_price = prev_entry_low
                 stop_loss = entry_price + (2 * current_atr)
-                meta = {"entry_price": entry_price, "stop_loss": stop_loss,
-                        "reason": "short_entry_breakout", "atr": current_atr}
+                meta = {
+                    "entry_price": entry_price,
+                    "stop_loss": stop_loss,
+                    "reason": "short_entry_breakout",
+                    "atr": current_atr,
+                }
 
         # Exit logica - voor bestaande posities
         elif current_direction == "BUY":
@@ -197,11 +219,16 @@ class TurtleStrategy:
         if signal:
             self.logger.info(f"Signaal voor {symbol}: {signal} - {meta.get('reason')}")
 
-        return {"symbol": symbol, "signal": signal, "meta": meta,
-                "timestamp": datetime.now()}
+        return {
+            "symbol": symbol,
+            "signal": signal,
+            "meta": meta,
+            "timestamp": datetime.now(),
+        }
 
-    def check_signals_with_data(self, symbol: str, data: pd.DataFrame) -> Dict[
-        str, Any]:
+    def check_signals_with_data(
+        self, symbol: str, data: pd.DataFrame
+    ) -> Dict[str, Any]:
         """
         Check voor signalen met voorbewerkte data (voor tests).
 
@@ -224,27 +251,22 @@ class TurtleStrategy:
         current_price = data["close"].iloc[-1]
 
         # Generator signaal
-        return self._generate_signal(symbol, data, {"current_price": current_price,
-                                                    "previous_entry_high":
-                                                        data["entry_high"].iloc[-2],
-                                                    "previous_entry_low":
-                                                        data["entry_low"].iloc[-2],
-                                                    "previous_exit_high":
-                                                        data["exit_high"].iloc[-2],
-                                                    "previous_exit_low":
-                                                        data["exit_low"].iloc[-2],
-                                                    "current_atr": data["atr"].iloc[-1],
-                                                    "vol_filter": data.get("vol_filter",
-                                                                           pd.Series([
-                                                                                         True])).iloc[
-                                                        -1],
-                                                    "trend_up": data["close"].iloc[-1] >
-                                                                data["close"].iloc[-20],
-                                                    "trend_down": data["close"].iloc[
-                                                                      -1] <
-                                                                  data["close"].iloc[
-                                                                      -20]},
-                                     current_direction)
+        return self._generate_signal(
+            symbol,
+            data,
+            {
+                "current_price": current_price,
+                "previous_entry_high": data["entry_high"].iloc[-2],
+                "previous_entry_low": data["entry_low"].iloc[-2],
+                "previous_exit_high": data["exit_high"].iloc[-2],
+                "previous_exit_low": data["exit_low"].iloc[-2],
+                "current_atr": data["atr"].iloc[-1],
+                "vol_filter": data.get("vol_filter", pd.Series([True])).iloc[-1],
+                "trend_up": data["close"].iloc[-1] > data["close"].iloc[-20],
+                "trend_down": data["close"].iloc[-1] < data["close"].iloc[-20],
+            },
+            current_direction,
+        )
 
     def get_name(self) -> str:
         """
@@ -294,37 +316,53 @@ class TurtleStrategy:
                 return {"success": False, "reason": "invalid_price_levels"}
 
             # Bereken positiegrootte
-            position_size = self.risk_manager.calculate_position_size(account_balance,
-                entry_price, stop_loss)
+            position_size = self.risk_manager.calculate_position_size(
+                account_balance, entry_price, stop_loss
+            )
 
             if position_size <= 0:
                 self.logger.warning(
-                    f"Ongeldige positiegrootte voor {symbol}: {position_size}")
+                    f"Ongeldige positiegrootte voor {symbol}: {position_size}"
+                )
                 return {"success": False, "reason": "invalid_position_size"}
 
             # Plaats order
             try:
-                order_result = self.connector.place_order(symbol, signal, position_size,
-                    entry_price, stop_loss,
+                order_result = self.connector.place_order(
+                    symbol,
+                    signal,
+                    position_size,
+                    entry_price,
+                    stop_loss,
                     entry_price * 1.5 if signal == "BUY" else entry_price * 0.5,
                     # Take profit
-                    f"Sophia Turtle {signal}")
+                    f"Sophia Turtle {signal}",
+                )
 
                 if order_result and order_result.get("success"):
                     # Update positie tracking
-                    self.positions[symbol] = {"direction": signal,
-                        "entry_price": entry_price, "stop_loss": stop_loss,
-                        "size": position_size, "entry_time": datetime.now(),
-                        "order_id": order_result.get("order_id")}
+                    self.positions[symbol] = {
+                        "direction": signal,
+                        "entry_price": entry_price,
+                        "stop_loss": stop_loss,
+                        "size": position_size,
+                        "entry_time": datetime.now(),
+                        "order_id": order_result.get("order_id"),
+                    }
 
                     self.logger.info(
-                        f"Order geplaatst: {signal} {position_size} lots {symbol} @ {entry_price} SL: {stop_loss}")
+                        f"Order geplaatst: {signal} {position_size} lots {symbol} @ {entry_price} SL: {stop_loss}"
+                    )
                     return {"success": True, "action": "entry", "order": order_result}
                 else:
                     self.logger.error(
-                        f"Order plaatsen mislukt voor {symbol}: {order_result}")
-                    return {"success": False, "reason": "order_failed",
-                            "details": order_result}
+                        f"Order plaatsen mislukt voor {symbol}: {order_result}"
+                    )
+                    return {
+                        "success": False,
+                        "reason": "order_failed",
+                        "details": order_result,
+                    }
 
             except Exception as e:
                 self.logger.error(f"Fout bij order plaatsen voor {symbol}: {e}")
@@ -354,8 +392,11 @@ class TurtleStrategy:
                     return {"success": True, "action": "exit", "order": close_result}
                 else:
                     self.logger.error(f"Positie sluiten mislukt voor {symbol}")
-                    return {"success": False, "reason": "close_failed",
-                            "details": close_result}
+                    return {
+                        "success": False,
+                        "reason": "close_failed",
+                        "details": close_result,
+                    }
 
             except Exception as e:
                 self.logger.error(f"Fout bij sluiten positie voor {symbol}: {e}")
