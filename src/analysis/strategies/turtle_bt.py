@@ -7,12 +7,9 @@ met een volatiliteitsfilter.
 """
 
 import logging
-import datetime
-from typing import Dict, Any
 
 import backtrader as bt
 import backtrader.indicators as btind
-import numpy as np
 
 
 class TurtleStrategy(bt.Strategy):
@@ -28,16 +25,18 @@ class TurtleStrategy(bt.Strategy):
     - vol_lookback: Lookback periode voor volatiliteitsfilter (standaard: 100)
     - vol_threshold: Drempelwaarde voor volatiliteitsfilter (standaard: 1.2)
     """
-    params = (('entry_period', 20),  # Entry Donchian channel periode
-              ('exit_period', 10),  # Exit Donchian channel periode
-              ('atr_period', 14),  # ATR periode
-              ('risk_pct', 0.01),  # Percentage risico per trade (1%)
-              ('use_vol_filter', True),  # Gebruik volatiliteitsfilter
-              ('vol_lookback', 100),  # Lookback periode voor vol filter
-              ('vol_threshold', 1.2),  # Drempelwaarde voor vol filter
-              ('trend_filter', True),  # Gebruik trendfilter
-              ('trend_period', 200),  # Periode voor trendfilter SMA
-              ('pyramiding', 1),  # Maximum aantal posities per richting
+
+    params = (
+        ("entry_period", 20),  # Entry Donchian channel periode
+        ("exit_period", 10),  # Exit Donchian channel periode
+        ("atr_period", 14),  # ATR periode
+        ("risk_pct", 0.01),  # Percentage risico per trade (1%)
+        ("use_vol_filter", True),  # Gebruik volatiliteitsfilter
+        ("vol_lookback", 100),  # Lookback periode voor vol filter
+        ("vol_threshold", 1.2),  # Drempelwaarde voor vol filter
+        ("trend_filter", True),  # Gebruik trendfilter
+        ("trend_period", 200),  # Periode voor trendfilter SMA
+        ("pyramiding", 1),  # Maximum aantal posities per richting
     )
 
     def __init__(self):
@@ -57,7 +56,8 @@ class TurtleStrategy(bt.Strategy):
             self.orders[data._name] = None
 
             # Entry Donchian Channel (hoogste high en laagste low over entry_period)
-            entry_high = btind.Highest(data.high, period=self.params.entry_period)
+            entry_high = btind.Highest(data.high,
+                                       period=self.params.entry_period)
             entry_low = btind.Lowest(data.low, period=self.params.entry_period)
 
             # Exit Donchian Channel (hoogste high en laagste low over exit_period)
@@ -84,10 +84,16 @@ class TurtleStrategy(bt.Strategy):
                 trend_down = None
 
             # Sla indicators op per symbool
-            self.inds[data._name] = {'entry_high': entry_high, 'entry_low': entry_low,
-                'exit_high': exit_high, 'exit_low': exit_low, 'atr': atr,
-                'vol_filter': vol_filter, 'trend_up': trend_up,
-                'trend_down': trend_down}
+            self.inds[data._name] = {
+                "entry_high": entry_high,
+                "entry_low": entry_low,
+                "exit_high": exit_high,
+                "exit_low": exit_low,
+                "atr": atr,
+                "vol_filter": vol_filter,
+                "trend_up": trend_up,
+                "trend_down": trend_down,
+            }
 
             self.logger.info(f"Initialized Turtle strategy for {data._name}")
 
@@ -122,12 +128,14 @@ class TurtleStrategy(bt.Strategy):
             if order.isbuy():
                 self.log(
                     f"BUY EXECUTED for {symbol}, Price: {order.executed.price:.5f}, "
-                    f"Size: {order.executed.size:.2f}")
+                    f"Size: {order.executed.size:.2f}"
+                )
                 self.positions[symbol] = 1
             elif order.issell():
                 self.log(
                     f"SELL EXECUTED for {symbol}, Price: {order.executed.price:.5f}, "
-                    f"Size: {order.executed.size:.2f}")
+                    f"Size: {order.executed.size:.2f}"
+                )
                 self.positions[symbol] = -1
 
             # Reset order referentie
@@ -151,8 +159,10 @@ class TurtleStrategy(bt.Strategy):
         # Vind de data/symbool voor deze trade
         data_name = trade.data._name
 
-        self.log(f"TRADE COMPLETED for {data_name}, Profit: {trade.pnl:.2f}, "
-                 f"Net: {trade.pnlcomm:.2f}")
+        self.log(
+            f"TRADE COMPLETED for {data_name}, Profit: {trade.pnl:.2f}, "
+            f"Net: {trade.pnlcomm:.2f}"
+        )
 
     def next(self):
         """
@@ -171,47 +181,54 @@ class TurtleStrategy(bt.Strategy):
 
             # Huidige data waarden
             current_price = data.close[0]
-            prev_entry_high = inds['entry_high'][-1]  # Vorige waarde (not current day)
-            prev_entry_low = inds['entry_low'][-1]
-            prev_exit_high = inds['exit_high'][-1]
-            prev_exit_low = inds['exit_low'][-1]
+            prev_entry_high = inds["entry_high"][
+                -1]  # Vorige waarde (not current day)
+            prev_entry_low = inds["entry_low"][-1]
+            prev_exit_high = inds["exit_high"][-1]
+            prev_exit_low = inds["exit_low"][-1]
 
             # Controleer volatiliteitsfilter (indien actief)
             vol_filter_passed = True
-            if inds['vol_filter'] is not None:
-                vol_filter_passed = inds['vol_filter'][0]
+            if inds["vol_filter"] is not None:
+                vol_filter_passed = inds["vol_filter"][0]
 
             # Controleer trendfilter (indien actief)
             trend_up = True
             trend_down = True
-            if inds['trend_up'] is not None:
-                trend_up = inds['trend_up'][0]
-            if inds['trend_down'] is not None:
-                trend_down = inds['trend_down'][0]
+            if inds["trend_up"] is not None:
+                trend_up = inds["trend_up"][0]
+            if inds["trend_down"] is not None:
+                trend_down = inds["trend_down"][0]
 
             # Entry logica als we geen positie hebben
             if pos == 0:
                 # Long entry (breakout boven entry_high)
                 if current_price > prev_entry_high and vol_filter_passed and trend_up:
                     # Calculate position size based on ATR for risk management
-                    atr_value = inds['atr'][0]
+                    atr_value = inds["atr"][0]
                     stop_price = current_price - (2 * atr_value)
 
-                    self.log(f"BUY SIGNAL for {symbol} at {current_price:.5f}, "
-                             f"Stop: {stop_price:.5f}")
+                    self.log(
+                        f"BUY SIGNAL for {symbol} at {current_price:.5f}, "
+                        f"Stop: {stop_price:.5f}"
+                    )
 
                     # Place buy order
                     self.orders[symbol] = self.buy(data=data)
                     self.positions[symbol] = 1
 
                 # Short entry (breakout onder entry_low)
-                elif current_price < prev_entry_low and vol_filter_passed and trend_down:
+                elif (
+                        current_price < prev_entry_low and vol_filter_passed and trend_down
+                ):
                     # Calculate position size based on ATR for risk management
-                    atr_value = inds['atr'][0]
+                    atr_value = inds["atr"][0]
                     stop_price = current_price + (2 * atr_value)
 
-                    self.log(f"SELL SIGNAL for {symbol} at {current_price:.5f}, "
-                             f"Stop: {stop_price:.5f}")
+                    self.log(
+                        f"SELL SIGNAL for {symbol} at {current_price:.5f}, "
+                        f"Stop: {stop_price:.5f}"
+                    )
 
                     # Place sell order
                     self.orders[symbol] = self.sell(data=data)

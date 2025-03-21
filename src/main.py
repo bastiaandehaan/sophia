@@ -1,12 +1,12 @@
 # src/main.py
+import argparse
 import os
 import signal
 import sys
 import time
 import traceback
-import argparse
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 # Voeg project root toe aan Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +26,8 @@ class SophiaTrader:
     Beheert de levenscyclus van de trading applicatie en coördineert componenten.
     """
 
-    def __init__(self, config_path: Optional[str] = None, backtest_mode: bool = False):
+    def __init__(self, config_path: Optional[str] = None,
+                 backtest_mode: bool = False):
         """
         Initialiseer de Sophia Trader applicatie.
 
@@ -37,7 +38,8 @@ class SophiaTrader:
         # Setup logging
         self.logger = setup_logging()
         self.logger.info("====== Sophia Trading System ======")
-        self.logger.info(f"Opgestart op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        self.logger.info(
+            f"Opgestart op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Backtest mode flag
         self.backtest_mode = backtest_mode
@@ -46,7 +48,8 @@ class SophiaTrader:
         if config_path:
             self.config_path = config_path
         else:
-            self.config_path = os.path.join(project_root, "config", "settings.json")
+            self.config_path = os.path.join(project_root, "config",
+                                            "settings.json")
 
         self.config = self._load_configuration()
 
@@ -73,23 +76,36 @@ class SophiaTrader:
         # Maak standaardconfiguratie als deze niet bestaat
         if not os.path.exists(self.config_path):
             self.logger.warning(
-                f"Configuratiebestand niet gevonden, standaardconfiguratie wordt gemaakt")
+                f"Configuratiebestand niet gevonden, standaardconfiguratie wordt gemaakt"
+            )
 
-            default_config = {"mt5": {"server": "FTMO-Demo2", "login": 1520533067,
-                                      "password": "UP7d??y4Wg",
-                                      "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe", },
-                              "symbols": ["EURUSD", "USDJPY"], "timeframe": "H4",
-                              "interval": 300,
-                              "risk": {"risk_per_trade": 0.01, "max_daily_loss": 0.05},
-                              "strategy": {"type": "turtle", "entry_period": 20,
-                                           "exit_period": 10, "atr_period": 14,
-                                           "vol_filter": True, "vol_lookback": 100,
-                                           "vol_threshold": 1.2, }, }
+            default_config = {
+                "mt5": {
+                    "server": "FTMO-Demo2",
+                    "login": 1520533067,
+                    "password": "UP7d??y4Wg",
+                    "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe",
+                },
+                "symbols": ["EURUSD", "USDJPY"],
+                "timeframe": "H4",
+                "interval": 300,
+                "risk": {"risk_per_trade": 0.01, "max_daily_loss": 0.05},
+                "strategy": {
+                    "type": "turtle",
+                    "entry_period": 20,
+                    "exit_period": 10,
+                    "atr_period": 14,
+                    "vol_filter": True,
+                    "vol_lookback": 100,
+                    "vol_threshold": 1.2,
+                },
+            }
 
             # Sla standaardconfiguratie op
             if save_config(default_config, self.config_path):
                 self.logger.info(
-                    f"Standaardconfiguratie aangemaakt op {self.config_path}")
+                    f"Standaardconfiguratie aangemaakt op {self.config_path}"
+                )
                 return default_config
             else:
                 self.logger.error("Kon standaardconfiguratie niet opslaan")
@@ -125,12 +141,14 @@ class SophiaTrader:
 
                     connect_attempts += 1
                     self.logger.warning(
-                        f"Poging {connect_attempts}/{max_attempts} om verbinding te maken met MT5 mislukt. Opnieuw proberen...")
+                        f"Poging {connect_attempts}/{max_attempts} om verbinding te maken met MT5 mislukt. Opnieuw proberen..."
+                    )
                     time.sleep(5)
 
                 if connect_attempts >= max_attempts:
                     self.logger.error(
-                        "Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen...")
+                        "Kon geen verbinding maken met MT5 na meerdere pogingen, stoppen..."
+                    )
                     return False
 
             # Haal account informatie op (alleen in live modus)
@@ -141,14 +159,17 @@ class SophiaTrader:
                     account_info = self.connector.get_account_info()
                     if not account_info or "balance" not in account_info:
                         self.logger.warning(
-                            "Kon account informatie niet ophalen, gebruik standaard waarden")
+                            "Kon account informatie niet ophalen, gebruik standaard waarden"
+                        )
                         account_info = {"balance": 10000, "currency": "USD"}
                 except Exception as e:
-                    self.logger.error(f"Fout bij ophalen account informatie: {e}")
+                    self.logger.error(
+                        f"Fout bij ophalen account informatie: {e}")
                     account_info = {"balance": 10000, "currency": "USD"}
 
             self.logger.info(
-                f"Account balans: {account_info['balance']} {account_info.get('currency', '')}")
+                f"Account balans: {account_info['balance']} {account_info.get('currency', '')}"
+            )
 
             # Initialiseer risicomanager
             self.risk_manager = RiskManager(self.config.get("risk", {}))
@@ -158,22 +179,29 @@ class SophiaTrader:
             strategy_type = strategy_config.get("type", "turtle")
 
             if strategy_type == "turtle":
-                self.strategy = TurtleStrategy(self.connector, self.risk_manager,
-                                               strategy_config)
+                self.strategy = TurtleStrategy(
+                    self.connector, self.risk_manager, strategy_config
+                )
             elif strategy_type == "ema":
                 # Importeer EMA strategie alleen indien nodig
                 from src.strategy_ema import EMAStrategy
-                self.strategy = EMAStrategy(self.connector, self.risk_manager,
-                                            strategy_config)
+
+                self.strategy = EMAStrategy(
+                    self.connector, self.risk_manager, strategy_config
+                )
             else:
                 self.logger.error(
-                    f"Onbekend strategie type: {strategy_type}, gebruik turtle")
-                self.strategy = TurtleStrategy(self.connector, self.risk_manager,
-                                               strategy_config)
+                    f"Onbekend strategie type: {strategy_type}, gebruik turtle"
+                )
+                self.strategy = TurtleStrategy(
+                    self.connector, self.risk_manager, strategy_config
+                )
 
             # Zorg ervoor dat positions dictionary bestaat
-            if (not hasattr(self.strategy,
-                            "positions") or self.strategy.positions is None):
+            if (
+                    not hasattr(self.strategy, "positions")
+                    or self.strategy.positions is None
+            ):
                 self.strategy.positions = {}
 
             return True
@@ -211,11 +239,13 @@ class SophiaTrader:
                     # Wacht voor volgende iteratie, gecorrigeerd voor verwerkingstijd
                     interval = self.config.get("interval", 300)  # Seconden
                     elapsed = time.time() - start_time
-                    wait_time = max(0.1,
-                                    interval - elapsed)  # Minimaal 0.1 seconden wachten
+                    wait_time = max(
+                        0.1, interval - elapsed
+                    )  # Minimaal 0.1 seconden wachten
 
                     self.logger.info(
-                        f"Wacht {wait_time:.1f} seconden tot volgende check...")
+                        f"Wacht {wait_time:.1f} seconden tot volgende check..."
+                    )
                     time.sleep(wait_time)
 
                 except Exception as e:
@@ -253,10 +283,12 @@ class SophiaTrader:
                 execution_result = self.strategy.execute_signal(result)
 
                 if execution_result and execution_result.get("success"):
-                    self.logger.info(f"Signaal succesvol uitgevoerd: {symbol} {signal}")
+                    self.logger.info(
+                        f"Signaal succesvol uitgevoerd: {symbol} {signal}")
                 else:
                     self.logger.warning(
-                        f"Signaal uitvoering mislukt: {symbol} {signal} - Reden: {execution_result.get('reason', 'onbekend')}")
+                        f"Signaal uitvoering mislukt: {symbol} {signal} - Reden: {execution_result.get('reason', 'onbekend')}"
+                    )
 
         except Exception as e:
             self.logger.error(f"Fout bij verwerken signalen voor {symbol}: {e}")
@@ -280,7 +312,8 @@ class SophiaTrader:
                     self.logger.info("Verbinding met MT5 succesvol gesloten")
                 else:
                     self.logger.warning(
-                        "Kon verbinding met MT5 mogelijk niet correct sluiten")
+                        "Kon verbinding met MT5 mogelijk niet correct sluiten"
+                    )
         except Exception as e:
             self.logger.error(f"Fout bij afsluiten verbinding: {e}")
 
@@ -292,18 +325,27 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Sophia Trading Framework")
 
     # Mode selectie
-    parser.add_argument('--mode', choices=['live', 'backtest'], default='live',
-                        help='Trading mode (live of backtest)')
+    parser.add_argument(
+        "--mode",
+        choices=["live", "backtest"],
+        default="live",
+        help="Trading mode (live of backtest)",
+    )
 
     # Configuratie
-    parser.add_argument('--config', type=str, help='Pad naar configuratiebestand')
+    parser.add_argument("--config", type=str,
+                        help="Pad naar configuratiebestand")
 
     # Backtest opties (als mode=backtest)
-    parser.add_argument('--backtest-script', action='store_true',
-                        help='Start backtest script in plaats van live trading')
+    parser.add_argument(
+        "--backtest-script",
+        action="store_true",
+        help="Start backtest script in plaats van live trading",
+    )
 
     # Dashboard opties
-    parser.add_argument('--dashboard', action='store_true', help='Start het dashboard')
+    parser.add_argument("--dashboard", action="store_true",
+                        help="Start het dashboard")
 
     return parser.parse_args()
 
@@ -315,16 +357,19 @@ def main():
     # Start het dashboard indien gevraagd
     if args.dashboard:
         from src.analysis.dashboard import main as dashboard_main
+
         return dashboard_main()
 
     # Start het backtest script indien gevraagd
     if args.backtest_script:
         from src.analysis.backtest import main as backtest_main
+
         return backtest_main()
 
     # Anders start normal trader
-    trader = SophiaTrader(config_path=args.config,
-        backtest_mode=(args.mode == 'backtest'))
+    trader = SophiaTrader(
+        config_path=args.config, backtest_mode=(args.mode == "backtest")
+    )
     return trader.run()
 
 

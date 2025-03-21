@@ -21,12 +21,15 @@ def setup_logging(log_level: int = logging.INFO) -> logging.Logger:
     log_dir = os.path.join(script_dir, "logs")
     os.makedirs(log_dir, exist_ok=True)
 
-    log_file = os.path.join(log_dir, f"sophia_{datetime.now().strftime('%Y%m%d')}.log")
+    log_file = os.path.join(log_dir,
+                            f"sophia_{datetime.now().strftime('%Y%m%d')}.log")
 
     # Configureer de root logger
-    logging.basicConfig(level=log_level,
+    logging.basicConfig(
+        level=log_level,
         format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.FileHandler(log_file), logging.StreamHandler()], )
+        handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
+    )
 
     # Maak een specifieke logger voor Sophia
     logger = logging.getLogger("sophia")
@@ -56,7 +59,8 @@ def load_config(config_path: str = "config/settings.json") -> Dict[str, Any]:
 
         if "symbols" not in config or not config["symbols"]:
             logging.warning(
-                "Geen handelssymbolen gedefinieerd, standaard EURUSD wordt gebruikt")
+                "Geen handelssymbolen gedefinieerd, standaard EURUSD wordt gebruikt"
+            )
             config["symbols"] = ["EURUSD"]
 
         return config
@@ -74,8 +78,9 @@ def load_config(config_path: str = "config/settings.json") -> Dict[str, Any]:
         return {}
 
 
-def save_config(config: Dict[str, Any],
-        config_path: str = "config/settings.json") -> bool:
+def save_config(
+        config: Dict[str, Any], config_path: str = "config/settings.json"
+) -> bool:
     """
     Slaat configuratie op naar JSON bestand.
 
@@ -116,8 +121,9 @@ def format_price(price: float, symbol: str = "EURUSD") -> str:
     return f"{price:.{decimals}f}"
 
 
-def calculate_pip_value(symbol: str, lot_size: float = 1.0,
-        account_currency: str = "USD") -> float:
+def calculate_pip_value(
+        symbol: str, lot_size: float = 1.0, account_currency: str = "USD"
+) -> float:
     """
     Bereken de waarde van 1 pip voor het gegeven symbool.
 

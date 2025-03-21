@@ -1,6 +1,8 @@
 # Sophia Trading Framework
 
-Een modulair trading framework voor geautomatiseerde trading met MetaTrader 5, speciaal ontworpen voor retail traders. Met dit framework kun je eenvoudig trading strategieën ontwikkelen, backtesten, optimaliseren en live uitvoeren.
+Een modulair trading framework voor geautomatiseerde trading met MetaTrader 5,
+speciaal ontworpen voor retail traders. Met dit framework kun je eenvoudig
+trading strategieën ontwikkelen, backtesten, optimaliseren en live uitvoeren.
 
 ## Belangrijkste Kenmerken
 
@@ -33,7 +35,8 @@ pip install -r requirements.txt
 
 ### Stap 3: Configuratie
 
-Pas de instellingen aan in `config/settings.json` of gebruik het dashboard om je configuratie in te stellen.
+Pas de instellingen aan in `config/settings.json` of gebruik het dashboard om je
+configuratie in te stellen.
 
 ## Snelle Start
 
@@ -85,18 +88,23 @@ python -m src.analysis.optimizer --strategy ema --timeframe M15 --period 6m --sy
 
 ### Turtle Trading Strategy
 
-De Turtle Trading strategie is gebaseerd op het bekende Turtle Traders systeem ontwikkeld door Richard Dennis en Bill Eckhardt. Het gebruikt price breakouts met volatiliteitsaanpassingen voor position sizing.
+De Turtle Trading strategie is gebaseerd op het bekende Turtle Traders systeem
+ontwikkeld door Richard Dennis en Bill Eckhardt. Het gebruikt price breakouts
+met volatiliteitsaanpassingen voor position sizing.
 
 Belangrijkste parameters:
+
 - `entry_period`: Aantal bars voor entry Donchian channel (standaard: 20)
 - `exit_period`: Aantal bars voor exit Donchian channel (standaard: 10)
 - `atr_period`: Periode voor ATR berekening (standaard: 14)
 
 ### EMA-Crossover Strategy
 
-De EMA-Crossover strategie gebruikt exponentiële voortschrijdende gemiddelden in combinatie met MACD en RSI filters voor betrouwbaardere signalen.
+De EMA-Crossover strategie gebruikt exponentiële voortschrijdende gemiddelden in
+combinatie met MACD en RSI filters voor betrouwbaardere signalen.
 
 Belangrijkste parameters:
+
 - `fast_ema`: Periode voor snelle EMA (standaard: 9)
 - `slow_ema`: Periode voor trage EMA (standaard: 21)
 - `signal_ema`: Periode voor MACD signaal lijn (standaard: 5)
@@ -104,7 +112,8 @@ Belangrijkste parameters:
 
 ## Gebruik van Backtrader Adapter
 
-De Backtrader adapter stelt je in staat om krachtige backtests uit te voeren met de Backtrader library:
+De Backtrader adapter stelt je in staat om krachtige backtests uit te voeren met
+de Backtrader library:
 
 ```python
 from src.analysis.backtrader_adapter import BacktraderAdapter
@@ -170,7 +179,8 @@ python -m src.analysis.optimizer [--strategy {turtle,ema}] [--start-date START_D
 
 ### Nieuwe Strategie Toevoegen
 
-1. Maak een nieuwe Python module in de `src` directory (bijv. `src/strategy_macd.py`)
+1. Maak een nieuwe Python module in de `src` directory (bijv.
+   `src/strategy_macd.py`)
 2. Implementeer de strategie met dezelfde interface als bestaande strategieën
 3. Voeg de strategie toe aan `src/main.py` in de `initialize_components` methode
 4. Maak een Backtrader versie in `src/analysis/strategies/`

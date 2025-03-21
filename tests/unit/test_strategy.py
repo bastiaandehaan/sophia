@@ -34,15 +34,18 @@ def test_calculate_indicators(turtle_strategy, sample_ohlc_data):
     assert "atr" in result.columns
 
     # Controleer berekeningen
-    assert result["entry_high"].iloc[25] >= max(sample_ohlc_data["high"].iloc[6:25])
-    assert result["exit_high"].iloc[25] >= max(sample_ohlc_data["high"].iloc[16:25])
+    assert result["entry_high"].iloc[25] >= max(
+        sample_ohlc_data["high"].iloc[6:25])
+    assert result["exit_high"].iloc[25] >= max(
+        sample_ohlc_data["high"].iloc[16:25])
 
     # ATR moet positief zijn
     assert (result["atr"].iloc[20:] > 0).all()
 
     # NaN waarden aan begin vanwege het rolling window
     # Aangepast: controleer vanaf entry_period (20) in plaats van index 10
-    assert result["entry_high"].iloc[turtle_strategy.entry_period:].notna().all()
+    assert result["entry_high"].iloc[
+           turtle_strategy.entry_period:].notna().all()
 
 
 def test_check_signals_buy(turtle_strategy, mock_connector, sample_ohlc_data):
@@ -59,7 +62,8 @@ def test_check_signals_buy(turtle_strategy, mock_connector, sample_ohlc_data):
     # Zorg dat laatste prijs boven entry high ligt
     entry_high = data_with_indicators["entry_high"].iloc[-2]
     data_with_indicators.loc[data_with_indicators.index[-1], "close"] = (
-            entry_high * 1.01)
+            entry_high * 1.01
+    )
 
     # Check voor signalen
     result = turtle_strategy.check_signals("EURUSD", data_with_indicators)
@@ -81,7 +85,8 @@ def test_check_signals_sell(turtle_strategy, mock_connector, sample_ohlc_data):
 
     # Zorg dat laatste prijs onder entry low ligt
     entry_low = data_with_indicators["entry_low"].iloc[-2]
-    data_with_indicators.loc[data_with_indicators.index[-1], "close"] = entry_low * 0.99
+    data_with_indicators.loc[
+        data_with_indicators.index[-1], "close"] = entry_low * 0.99
 
     # Mock de connector om de gemodificeerde data te gebruiken
     mock_connector.get_historical_data.return_value = data_with_indicators
@@ -96,10 +101,12 @@ def test_check_signals_sell(turtle_strategy, mock_connector, sample_ohlc_data):
     assert result["meta"]["reason"] == "short_entry_breakout"
 
 
-def test_check_signals_no_signal(turtle_strategy, mock_connector, sample_ohlc_data):
+def test_check_signals_no_signal(turtle_strategy, mock_connector,
+                                 sample_ohlc_data):
     """Test detectie van geen signaal."""
     # Gebruik standaard data zonder speciale situatie
-    data_with_indicators = turtle_strategy.calculate_indicators(sample_ohlc_data)
+    data_with_indicators = turtle_strategy.calculate_indicators(
+        sample_ohlc_data)
 
     # Mock de connector
     mock_connector.get_historical_data.return_value = data_with_indicators
@@ -108,7 +115,8 @@ def test_check_signals_no_signal(turtle_strategy, mock_connector, sample_ohlc_da
     entry_high = data_with_indicators["entry_high"].iloc[-2]
     entry_low = data_with_indicators["entry_low"].iloc[-2]
     mid_price = (entry_high + entry_low) / 2
-    data_with_indicators.loc[data_with_indicators.index[-1], "close"] = mid_price
+    data_with_indicators.loc[
+        data_with_indicators.index[-1], "close"] = mid_price
 
     # Check voor signalen
     result = turtle_strategy.check_signals("EURUSD", data_with_indicators)
@@ -117,21 +125,29 @@ def test_check_signals_no_signal(turtle_strategy, mock_connector, sample_ohlc_da
     assert result["signal"] is None
 
 
-def test_check_signals_exit_long(turtle_strategy, mock_connector, sample_ohlc_data):
+def test_check_signals_exit_long(turtle_strategy, mock_connector,
+                                 sample_ohlc_data):
     """Test signaaldetectie voor long exit."""
     # Bereken indicators
-    data_with_indicators = turtle_strategy.calculate_indicators(sample_ohlc_data)
+    data_with_indicators = turtle_strategy.calculate_indicators(
+        sample_ohlc_data)
 
     # Mock de connector
     mock_connector.get_historical_data.return_value = data_with_indicators
 
     # Simuleer bestaande long positie
-    turtle_strategy.positions["EURUSD"] = {"direction": "BUY", "entry_price": 1.2000,
-        "stop_loss": 1.1900, "size": 0.1, "entry_time": pd.Timestamp.now(), }
+    turtle_strategy.positions["EURUSD"] = {
+        "direction": "BUY",
+        "entry_price": 1.2000,
+        "stop_loss": 1.1900,
+        "size": 0.1,
+        "entry_time": pd.Timestamp.now(),
+    }
 
     # Zet prijs onder exit low voor exit signaal
     exit_low = data_with_indicators["exit_low"].iloc[-2]
-    data_with_indicators.loc[data_with_indicators.index[-1], "close"] = exit_low * 0.99
+    data_with_indicators.loc[
+        data_with_indicators.index[-1], "close"] = exit_low * 0.99
 
     # Check voor signalen
     result = turtle_strategy.check_signals("EURUSD", data_with_indicators)

@@ -6,12 +6,9 @@ Gebaseerd op cross-over van twee EMA's met RSI-filter voor bevestiging.
 """
 
 import logging
-import datetime
-from typing import Dict, Any
 
 import backtrader as bt
 import backtrader.indicators as btind
-import numpy as np
 
 
 class EMAStrategy(bt.Strategy):
@@ -30,20 +27,22 @@ class EMAStrategy(bt.Strategy):
     - risk_pct: Percentage van kapitaal om te riskeren per trade (standaard: 1%)
     - trail_stop: Activeer trailing stop (standaard: True)
     """
-    params = (('fast_ema', 9),  # Snelle EMA periode
-              ('slow_ema', 21),  # Trage EMA periode
-              ('signal_ema', 5),  # Signaal EMA periode
-              ('rsi_period', 14),  # RSI periode
-              ('rsi_upper', 70),  # RSI bovengrens
-              ('rsi_lower', 30),  # RSI ondergrens
-              ('atr_period', 14),  # ATR periode
-              ('atr_multiplier', 2.0),  # Stop loss ATR vermenigvuldiger
-              ('risk_pct', 0.01),  # Risico percentage (1%)
-              ('trail_stop', True),  # Gebruik trailing stop
-              ('profit_target', 3.0),  # Winst target als ATR multiplier
-              ('use_time_filter', True),  # Gebruik tijdsfilter voor intraday trading
-              ('session_start', 8),  # Sessie start (uur, bijv. 8 = 8:00)
-              ('session_end', 16),  # Sessie einde (uur, bijv. 16 = 16:00)
+
+    params = (
+        ("fast_ema", 9),  # Snelle EMA periode
+        ("slow_ema", 21),  # Trage EMA periode
+        ("signal_ema", 5),  # Signaal EMA periode
+        ("rsi_period", 14),  # RSI periode
+        ("rsi_upper", 70),  # RSI bovengrens
+        ("rsi_lower", 30),  # RSI ondergrens
+        ("atr_period", 14),  # ATR periode
+        ("atr_multiplier", 2.0),  # Stop loss ATR vermenigvuldiger
+        ("risk_pct", 0.01),  # Risico percentage (1%)
+        ("trail_stop", True),  # Gebruik trailing stop
+        ("profit_target", 3.0),  # Winst target als ATR multiplier
+        ("use_time_filter", True),  # Gebruik tijdsfilter voor intraday trading
+        ("session_start", 8),  # Sessie start (uur, bijv. 8 = 8:00)
+        ("session_end", 16),  # Sessie einde (uur, bijv. 16 = 16:00)
     )
 
     def __init__(self):
@@ -90,9 +89,17 @@ class EMAStrategy(bt.Strategy):
             boll = btind.BollingerBands(data, period=20, devfactor=2)
 
             # Sla indicators op per symbool
-            self.inds[data._name] = {'fast_ema': fast_ema, 'slow_ema': slow_ema,
-                'macd': macd, 'signal': signal, 'macd_hist': macd_hist, 'rsi': rsi,
-                'atr': atr, 'momentum': mom, 'bollinger': boll}
+            self.inds[data._name] = {
+                "fast_ema": fast_ema,
+                "slow_ema": slow_ema,
+                "macd": macd,
+                "signal": signal,
+                "macd_hist": macd_hist,
+                "rsi": rsi,
+                "atr": atr,
+                "momentum": mom,
+                "bollinger": boll,
+            }
 
             self.logger.info(f"Initialized EMA strategy for {data._name}")
 
@@ -148,7 +155,8 @@ class EMAStrategy(bt.Strategy):
             if order.isbuy():
                 self.log(
                     f"BUY EXECUTED for {symbol}, Price: {order.executed.price:.5f}, "
-                    f"Size: {order.executed.size:.2f}")
+                    f"Size: {order.executed.size:.2f}"
+                )
                 if order_type == "main":
                     self.positions[symbol] = 1
 
@@ -160,7 +168,8 @@ class EMAStrategy(bt.Strategy):
             elif order.issell():
                 self.log(
                     f"SELL EXECUTED for {symbol}, Price: {order.executed.price:.5f}, "
-                    f"Size: {order.executed.size:.2f}")
+                    f"Size: {order.executed.size:.2f}"
+                )
                 if order_type == "main":
                     self.positions[symbol] = -1
 
@@ -177,7 +186,8 @@ class EMAStrategy(bt.Strategy):
                 self.positions[symbol] = 0  # Reset positie als stop is geraakt
             elif order_type == "target":
                 self.target_orders[symbol] = None
-                self.positions[symbol] = 0  # Reset positie als target is bereikt
+                self.positions[
+                    symbol] = 0  # Reset positie als target is bereikt
 
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log(f"Order Canceled/Margin/Rejected for {symbol}")
@@ -203,8 +213,10 @@ class EMAStrategy(bt.Strategy):
         # Vind de data/symbool voor deze trade
         data_name = trade.data._name
 
-        self.log(f"TRADE COMPLETED for {data_name}, Profit: {trade.pnl:.2f}, "
-                 f"Net: {trade.pnlcomm:.2f}")
+        self.log(
+            f"TRADE COMPLETED for {data_name}, Profit: {trade.pnl:.2f}, "
+            f"Net: {trade.pnlcomm:.2f}"
+        )
 
     def _set_stop_loss(self, symbol):
         """
@@ -221,28 +233,38 @@ class EMAStrategy(bt.Strategy):
             return
 
         # Bepaal stop loss prijs gebaseerd op ATR
-        atr_value = self.inds[symbol]['atr'][0]
+        atr_value = self.inds[symbol]["atr"][0]
         current_price = data.close[0]
 
         if self.positions[symbol] > 0:  # Long positie
-            stop_price = current_price - (self.params.atr_multiplier * atr_value)
+            stop_price = current_price - (
+                        self.params.atr_multiplier * atr_value)
             self.stop_prices[symbol] = stop_price
 
             # Plaats stop order
-            self.stop_orders[symbol] = self.sell(data=data, size=None,
+            self.stop_orders[symbol] = self.sell(
+                data=data,
+                size=None,
                 # Sluit hele positie
-                exectype=bt.Order.Stop, price=stop_price)
+                exectype=bt.Order.Stop,
+                price=stop_price,
+            )
 
             self.log(f"STOP LOSS SET for {symbol} at {stop_price:.5f}")
 
         elif self.positions[symbol] < 0:  # Short positie
-            stop_price = current_price + (self.params.atr_multiplier * atr_value)
+            stop_price = current_price + (
+                        self.params.atr_multiplier * atr_value)
             self.stop_prices[symbol] = stop_price
 
             # Plaats stop order
-            self.stop_orders[symbol] = self.buy(data=data, size=None,
+            self.stop_orders[symbol] = self.buy(
+                data=data,
+                size=None,
                 # Sluit hele positie
-                exectype=bt.Order.Stop, price=stop_price)
+                exectype=bt.Order.Stop,
+                price=stop_price,
+            )
 
             self.log(f"STOP LOSS SET for {symbol} at {stop_price:.5f}")
 
@@ -261,26 +283,36 @@ class EMAStrategy(bt.Strategy):
             return
 
         # Bepaal target prijs gebaseerd op ATR
-        atr_value = self.inds[symbol]['atr'][0]
+        atr_value = self.inds[symbol]["atr"][0]
         current_price = data.close[0]
 
         if self.positions[symbol] > 0:  # Long positie
-            target_price = current_price + (self.params.profit_target * atr_value)
+            target_price = current_price + (
+                        self.params.profit_target * atr_value)
 
             # Plaats limit order
-            self.target_orders[symbol] = self.sell(data=data, size=None,
+            self.target_orders[symbol] = self.sell(
+                data=data,
+                size=None,
                 # Sluit hele positie
-                exectype=bt.Order.Limit, price=target_price)
+                exectype=bt.Order.Limit,
+                price=target_price,
+            )
 
             self.log(f"PROFIT TARGET SET for {symbol} at {target_price:.5f}")
 
         elif self.positions[symbol] < 0:  # Short positie
-            target_price = current_price - (self.params.profit_target * atr_value)
+            target_price = current_price - (
+                        self.params.profit_target * atr_value)
 
             # Plaats limit order
-            self.target_orders[symbol] = self.buy(data=data, size=None,
+            self.target_orders[symbol] = self.buy(
+                data=data,
+                size=None,
                 # Sluit hele positie
-                exectype=bt.Order.Limit, price=target_price)
+                exectype=bt.Order.Limit,
+                price=target_price,
+            )
 
             self.log(f"PROFIT TARGET SET for {symbol} at {target_price:.5f}")
 
@@ -299,7 +331,7 @@ class EMAStrategy(bt.Strategy):
             return
 
         # Bereken nieuwe stop loss prijs
-        atr_value = self.inds[symbol]['atr'][0]
+        atr_value = self.inds[symbol]["atr"][0]
         current_price = data.close[0]
 
         if self.positions[symbol] > 0:  # Long positie
@@ -314,11 +346,16 @@ class EMAStrategy(bt.Strategy):
 
                 # Plaats nieuwe stop order
                 self.stop_prices[symbol] = new_stop
-                self.stop_orders[symbol] = self.sell(data=data, size=None,
+                self.stop_orders[symbol] = self.sell(
+                    data=data,
+                    size=None,
                     # Sluit hele positie
-                    exectype=bt.Order.Stop, price=new_stop)
+                    exectype=bt.Order.Stop,
+                    price=new_stop,
+                )
 
-                self.log(f"TRAILING STOP UPDATED for {symbol} to {new_stop:.5f}")
+                self.log(
+                    f"TRAILING STOP UPDATED for {symbol} to {new_stop:.5f}")
 
         elif self.positions[symbol] < 0:  # Short positie
             new_stop = current_price + (self.params.atr_multiplier * atr_value)
@@ -332,11 +369,16 @@ class EMAStrategy(bt.Strategy):
 
                 # Plaats nieuwe stop order
                 self.stop_prices[symbol] = new_stop
-                self.stop_orders[symbol] = self.buy(data=data, size=None,
+                self.stop_orders[symbol] = self.buy(
+                    data=data,
+                    size=None,
                     # Sluit hele positie
-                    exectype=bt.Order.Stop, price=new_stop)
+                    exectype=bt.Order.Stop,
+                    price=new_stop,
+                )
 
-                self.log(f"TRAILING STOP UPDATED for {symbol} to {new_stop:.5f}")
+                self.log(
+                    f"TRAILING STOP UPDATED for {symbol} to {new_stop:.5f}")
 
     def _is_in_session(self, data):
         """
@@ -380,26 +422,29 @@ class EMAStrategy(bt.Strategy):
             # Check of we binnen handelssessie zijn
             if not self._is_in_session(data):
                 # Eventueel posities sluiten aan einde sessie
-                if pos != 0 and data.datetime.time().hour >= self.params.session_end - 1:
+                if (
+                        pos != 0
+                        and data.datetime.time().hour >= self.params.session_end - 1
+                ):
                     self.log(f"SESSION END: Closing position for {symbol}")
                     self.close(data=data)
                     self.positions[symbol] = 0
                 continue
 
             # Huidige indicator waarden
-            fast_ema = inds['fast_ema'][0]
-            slow_ema = inds['slow_ema'][0]
-            macd = inds['macd'][0]
-            signal = inds['signal'][0]
-            macd_hist = inds['macd_hist'][0]
-            rsi = inds['rsi'][0]
-            momentum = inds['momentum'][0]
-            boll_mid = inds['bollinger'].mid[0]
-            boll_top = inds['bollinger'].top[0]
-            boll_bot = inds['bollinger'].bot[0]
+            fast_ema = inds["fast_ema"][0]
+            slow_ema = inds["slow_ema"][0]
+            macd = inds["macd"][0]
+            signal = inds["signal"][0]
+            macd_hist = inds["macd_hist"][0]
+            rsi = inds["rsi"][0]
+            momentum = inds["momentum"][0]
+            boll_mid = inds["bollinger"].mid[0]
+            boll_top = inds["bollinger"].top[0]
+            boll_bot = inds["bollinger"].bot[0]
 
             # Vorige waarden
-            prev_macd_hist = inds['macd_hist'][-1]
+            prev_macd_hist = inds["macd_hist"][-1]
 
             # Entry logica als we geen positie hebben
             if pos == 0:
@@ -408,9 +453,14 @@ class EMAStrategy(bt.Strategy):
                 # 2. MACD histogram draait positief (crossover)
                 # 3. RSI > 50 (momentum bevestiging)
                 if (
-                        fast_ema > slow_ema and macd > signal and macd_hist > 0 and prev_macd_hist <= 0 and  # Crossover
-                        rsi > 50 and momentum > 0 and data.close[
-                    0] > boll_mid):  # Prijs boven midden Bollinger
+                        fast_ema > slow_ema
+                        and macd > signal
+                        and macd_hist > 0
+                        and prev_macd_hist <= 0  # Crossover
+                        and rsi > 50
+                        and momentum > 0
+                        and data.close[0] > boll_mid
+                ):  # Prijs boven midden Bollinger
 
                     self.log(f"BUY SIGNAL for {symbol} at {data.close[0]:.5f}")
 
@@ -422,9 +472,14 @@ class EMAStrategy(bt.Strategy):
                 # 2. MACD histogram draait negatief (crossover)
                 # 3. RSI < 50 (momentum bevestiging)
                 elif (
-                        fast_ema < slow_ema and macd < signal and macd_hist < 0 and prev_macd_hist >= 0 and  # Crossover
-                        rsi < 50 and momentum < 0 and data.close[
-                            0] < boll_mid):  # Prijs onder midden Bollinger
+                        fast_ema < slow_ema
+                        and macd < signal
+                        and macd_hist < 0
+                        and prev_macd_hist >= 0  # Crossover
+                        and rsi < 50
+                        and momentum < 0
+                        and data.close[0] < boll_mid
+                ):  # Prijs onder midden Bollinger
 
                     self.log(f"SELL SIGNAL for {symbol} at {data.close[0]:.5f}")
 
@@ -435,7 +490,8 @@ class EMAStrategy(bt.Strategy):
             elif pos > 0:  # Long positie
                 # Exit als MACD onder signaal lijn kruist of EMA crossover
                 if (
-                        macd < signal and macd_hist < 0 and prev_macd_hist >= 0) or fast_ema < slow_ema:
+                        macd < signal and macd_hist < 0 and prev_macd_hist >= 0
+                ) or fast_ema < slow_ema:
                     self.log(f"CLOSE LONG for {symbol} at {data.close[0]:.5f}")
 
                     # Cancel bestaande stop en target orders
@@ -454,7 +510,8 @@ class EMAStrategy(bt.Strategy):
             elif pos < 0:  # Short positie
                 # Exit als MACD boven signaal lijn kruist of EMA crossover
                 if (
-                        macd > signal and macd_hist > 0 and prev_macd_hist <= 0) or fast_ema > slow_ema:
+                        macd > signal and macd_hist > 0 and prev_macd_hist <= 0
+                ) or fast_ema > slow_ema:
                     self.log(f"CLOSE SHORT for {symbol} at {data.close[0]:.5f}")
 
                     # Cancel bestaande stop en target orders

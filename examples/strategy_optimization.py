@@ -6,13 +6,11 @@ van de beste parameters. Dit script laat zien hoe je de Sophia Trading Framework
 kunt gebruiken voor het vinden van optimale parameters en het evalueren van de strategie.
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import argparse
 
 # Zorg dat project root in sys.path zit
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,29 +26,54 @@ from src.analysis.strategies.ema_bt import EMAStrategy
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description='Strategie optimalisatie en backtest voorbeeld')
+        description="Strategie optimalisatie en backtest voorbeeld"
+    )
 
-    parser.add_argument('--strategy', type=str, default='turtle',
-                        choices=['turtle', 'ema'],
-                        help='Strategie om te optimaliseren (default: turtle)')
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        default="turtle",
+        choices=["turtle", "ema"],
+        help="Strategie om te optimaliseren (default: turtle)",
+    )
 
-    parser.add_argument('--symbol', type=str, default='EURUSD',
-                        help='Symbool om te testen (default: EURUSD)')
+    parser.add_argument(
+        "--symbol",
+        type=str,
+        default="EURUSD",
+        help="Symbool om te testen (default: EURUSD)",
+    )
 
-    parser.add_argument('--timeframe', type=str, default='H4',
-                        choices=['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'],
-                        help='Timeframe voor data (default: H4)')
+    parser.add_argument(
+        "--timeframe",
+        type=str,
+        default="H4",
+        choices=["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+        help="Timeframe voor data (default: H4)",
+    )
 
-    parser.add_argument('--period', type=str, default='1y',
-                        choices=['1m', '3m', '6m', '1y', '2y', '5y'],
-                        help='Periode voor backtest (default: 1y)')
+    parser.add_argument(
+        "--period",
+        type=str,
+        default="1y",
+        choices=["1m", "3m", "6m", "1y", "2y", "5y"],
+        help="Periode voor backtest (default: 1y)",
+    )
 
-    parser.add_argument('--metric', type=str, default='sharpe',
-                        choices=['sharpe', 'return', 'drawdown', 'profit_factor'],
-                        help='Metric om te optimaliseren (default: sharpe)')
+    parser.add_argument(
+        "--metric",
+        type=str,
+        default="sharpe",
+        choices=["sharpe", "return", "drawdown", "profit_factor"],
+        help="Metric om te optimaliseren (default: sharpe)",
+    )
 
-    parser.add_argument('--combinations', type=int, default=25,
-                        help='Aantal parametercombinaties om te testen (default: 25)')
+    parser.add_argument(
+        "--combinations",
+        type=int,
+        default=25,
+        help="Aantal parametercombinaties om te testen (default: 25)",
+    )
 
     return parser.parse_args()
 
@@ -67,23 +90,23 @@ def calculate_period_dates(period):
     """
     end_date = datetime.now()
 
-    if period == '1m':
+    if period == "1m":
         start_date = end_date - timedelta(days=30)
-    elif period == '3m':
+    elif period == "3m":
         start_date = end_date - timedelta(days=90)
-    elif period == '6m':
+    elif period == "6m":
         start_date = end_date - timedelta(days=180)
-    elif period == '1y':
+    elif period == "1y":
         start_date = end_date - timedelta(days=365)
-    elif period == '2y':
+    elif period == "2y":
         start_date = end_date - timedelta(days=365 * 2)
-    elif period == '5y':
+    elif period == "5y":
         start_date = end_date - timedelta(days=365 * 5)
     else:
         # Default to 1 year
         start_date = end_date - timedelta(days=365)
 
-    return (start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+    return (start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
 
 
 def generate_parameter_combinations(strategy, num_combinations):
@@ -97,7 +120,7 @@ def generate_parameter_combinations(strategy, num_combinations):
     Returns:
         Lijst van parameter dictionaries
     """
-    if strategy == 'turtle':
+    if strategy == "turtle":
         # Parameter bereiken voor Turtle strategy
         entry_periods = [10, 15, 20, 25, 30, 40]
         exit_periods = [5, 8, 10, 12, 15, 20]
@@ -112,16 +135,21 @@ def generate_parameter_combinations(strategy, num_combinations):
                     continue
                 for atr in atr_periods:
                     for vol_filter in use_vol_filters:
-                        combinations.append({'entry_period': entry, 'exit_period': exit,
-                            'atr_period': atr, 'use_vol_filter': vol_filter,
-                            'risk_pct': 0.01  # Vast
-                        })
+                        combinations.append(
+                            {
+                                "entry_period": entry,
+                                "exit_period": exit,
+                                "atr_period": atr,
+                                "use_vol_filter": vol_filter,
+                                "risk_pct": 0.01,  # Vast
+                            }
+                        )
 
                         # Stop als we maximum bereiken
                         if len(combinations) >= num_combinations:
                             return combinations[:num_combinations]
 
-    elif strategy == 'ema':
+    elif strategy == "ema":
         # Parameter bereiken voor EMA strategy
         fast_emas = [5, 8, 9, 10, 12, 15]
         slow_emas = [18, 20, 21, 25, 30]
@@ -135,10 +163,14 @@ def generate_parameter_combinations(strategy, num_combinations):
                     continue
                 for signal in signal_emas:
                     combinations.append(
-                        {'fast_ema': fast, 'slow_ema': slow, 'signal_ema': signal,
-                            'risk_pct': 0.01,  # Vast
-                            'trail_stop': True  # Vast
-                        })
+                        {
+                            "fast_ema": fast,
+                            "slow_ema": slow,
+                            "signal_ema": signal,
+                            "risk_pct": 0.01,  # Vast
+                            "trail_stop": True,  # Vast
+                        }
+                    )
 
                     # Stop als we maximum bereiken
                     if len(combinations) >= num_combinations:
@@ -173,21 +205,26 @@ def run_parameter_optimization(args):
 
     # Haal historische data op
     print(f"\nHistorische data ophalen voor {args.symbol}...")
-    data = adapter.get_historical_data(args.symbol, args.timeframe,
-        from_date=start_date, to_date=end_date)
+    data = adapter.get_historical_data(
+        args.symbol, args.timeframe, from_date=start_date, to_date=end_date
+    )
 
     if data is None or len(data) == 0:
-        print("Kon geen historische data ophalen. Controleer symbool en datums.")
+        print(
+            "Kon geen historische data ophalen. Controleer symbool en datums.")
         return None
 
     print(
-        f"Opgehaald: {len(data)} bars van {data['time'].min()} tot {data['time'].max()}")
+        f"Opgehaald: {len(data)} bars van {data['time'].min()} tot {data['time'].max()}"
+    )
 
     # Genereer parameter combinaties
-    parameter_combinations = generate_parameter_combinations(args.strategy,
-        args.combinations)
+    parameter_combinations = generate_parameter_combinations(
+        args.strategy, args.combinations
+    )
 
-    print(f"\nTesten van {len(parameter_combinations)} parameter combinaties...")
+    print(
+        f"\nTesten van {len(parameter_combinations)} parameter combinaties...")
 
     # Resultaten opslaan
     results = []
@@ -203,7 +240,7 @@ def run_parameter_optimization(args):
         adapter.add_data(data.copy(), args.symbol, args.timeframe)
 
         # Voeg strategie toe met deze parameters
-        if args.strategy == 'turtle':
+        if args.strategy == "turtle":
             adapter.add_strategy(TurtleStrategy, **params)
         else:  # ema
             adapter.add_strategy(EMAStrategy, **params)
@@ -212,60 +249,76 @@ def run_parameter_optimization(args):
         _, metrics = adapter.run_backtest()
 
         # Sla resultaten op
-        results.append({'params': params, 'metrics': metrics})
+        results.append({"params": params, "metrics": metrics})
 
     print("\n\nOptimalisatie voltooid!")
 
     # Sorteer resultaten op basis van gekozen metric
-    if args.metric == 'sharpe':
+    if args.metric == "sharpe":
         # Hoger is beter
-        results.sort(key=lambda x: x['metrics']['sharpe_ratio'], reverse=True)
-        metric_name = 'Sharpe Ratio'
-        metric_key = 'sharpe_ratio'
-    elif args.metric == 'return':
+        results.sort(key=lambda x: x["metrics"]["sharpe_ratio"], reverse=True)
+        metric_name = "Sharpe Ratio"
+        metric_key = "sharpe_ratio"
+    elif args.metric == "return":
         # Hoger is beter
-        results.sort(key=lambda x: x['metrics']['total_return_pct'], reverse=True)
-        metric_name = 'Total Return %'
-        metric_key = 'total_return_pct'
-    elif args.metric == 'drawdown':
+        results.sort(key=lambda x: x["metrics"]["total_return_pct"],
+                     reverse=True)
+        metric_name = "Total Return %"
+        metric_key = "total_return_pct"
+    elif args.metric == "drawdown":
         # Lager is beter
-        results.sort(key=lambda x: x['metrics']['max_drawdown_pct'])
-        metric_name = 'Max Drawdown %'
-        metric_key = 'max_drawdown_pct'
-    elif args.metric == 'profit_factor':
+        results.sort(key=lambda x: x["metrics"]["max_drawdown_pct"])
+        metric_name = "Max Drawdown %"
+        metric_key = "max_drawdown_pct"
+    elif args.metric == "profit_factor":
         # Hoger is beter
-        results.sort(key=lambda x: x['metrics']['profit_factor'], reverse=True)
-        metric_name = 'Profit Factor'
-        metric_key = 'profit_factor'
+        results.sort(key=lambda x: x["metrics"]["profit_factor"], reverse=True)
+        metric_name = "Profit Factor"
+        metric_key = "profit_factor"
 
     # Toon top 5 resultaten
-    print(f"\nTop 5 {args.strategy.upper()} parameters (gesorteerd op {metric_name}):")
+    print(
+        f"\nTop 5 {args.strategy.upper()} parameters (gesorteerd op {metric_name}):")
     print(f"{'=' * 80}")
     for i, result in enumerate(results[:5]):
-        params_str = ", ".join([f"{k}={v}" for k, v in result['params'].items()])
-        metrics_str = f"{metric_name}: {result['metrics'][metric_key]:.2f}, " \
-                      f"Return: {result['metrics']['total_return_pct']:.2f}%, " \
-                      f"Drawdown: {result['metrics']['max_drawdown_pct']:.2f}%, " \
-                      f"Trades: {result['metrics']['total_trades']}"
+        params_str = ", ".join(
+            [f"{k}={v}" for k, v in result["params"].items()])
+        metrics_str = (
+            f"{metric_name}: {result['metrics'][metric_key]:.2f}, "
+            f"Return: {result['metrics']['total_return_pct']:.2f}%, "
+            f"Drawdown: {result['metrics']['max_drawdown_pct']:.2f}%, "
+            f"Trades: {result['metrics']['total_trades']}"
+        )
         print(f"{i + 1}. {params_str}")
         print(f"   {metrics_str}")
 
     # Bewaar beste parameters
-    best_params = results[0]['params']
+    best_params = results[0]["params"]
 
     # Sla resultaten op in JSON bestand
     output_dir = "optimization_results"
     os.makedirs(output_dir, exist_ok=True)
 
-    results_file = os.path.join(output_dir,
-        f"optimize_{args.strategy}_{args.symbol}_{args.timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    results_file = os.path.join(
+        output_dir,
+        f"optimize_{args.strategy}_{args.symbol}_{args.timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+    )
 
-    with open(results_file, 'w') as f:
-        json.dump({'strategy': args.strategy, 'symbol': args.symbol,
-            'timeframe': args.timeframe, 'period': args.period,
-            'start_date': start_date, 'end_date': end_date, 'metric': args.metric,
-            'results': results[:10]  # Bewaar top 10
-        }, f, indent=2)
+    with open(results_file, "w") as f:
+        json.dump(
+            {
+                "strategy": args.strategy,
+                "symbol": args.symbol,
+                "timeframe": args.timeframe,
+                "period": args.period,
+                "start_date": start_date,
+                "end_date": end_date,
+                "metric": args.metric,
+                "results": results[:10],  # Bewaar top 10
+            },
+            f,
+            indent=2,
+        )
 
     print(f"\nResultaten opgeslagen in: {results_file}")
 
@@ -281,7 +334,8 @@ def run_backtest_with_parameters(args, params):
         params: Parameters dictionary
     """
     print(f"\n{'=' * 80}")
-    print(f"BACKTEST MET OPTIMALE PARAMETERS: {args.strategy.upper()} STRATEGIE")
+    print(
+        f"BACKTEST MET OPTIMALE PARAMETERS: {args.strategy.upper()} STRATEGIE")
     print(f"{'=' * 80}")
 
     # Bereken periode datums
@@ -299,8 +353,9 @@ def run_backtest_with_parameters(args, params):
 
     # Haal historische data op
     print(f"\nHistorische data ophalen voor {args.symbol}...")
-    data = adapter.get_historical_data(args.symbol, args.timeframe,
-        from_date=start_date, to_date=end_date)
+    data = adapter.get_historical_data(
+        args.symbol, args.timeframe, from_date=start_date, to_date=end_date
+    )
 
     # Initialiseer Cerebro
     cerebro = adapter.prepare_cerebro(initial_cash=10000.0)
@@ -309,7 +364,7 @@ def run_backtest_with_parameters(args, params):
     adapter.add_data(data, args.symbol, args.timeframe)
 
     # Voeg strategie toe met optimale parameters
-    if args.strategy == 'turtle':
+    if args.strategy == "turtle":
         adapter.add_strategy(TurtleStrategy, **params)
     else:  # ema
         adapter.add_strategy(EMAStrategy, **params)
@@ -324,7 +379,8 @@ def run_backtest_with_parameters(args, params):
     print(f"Initial balance: ${cerebro.broker.startingcash:.2f}")
     print(f"Final balance:   ${metrics['final_value']:.2f}")
     print(
-        f"Net profit/loss: ${metrics['final_value'] - cerebro.broker.startingcash:.2f} ({metrics['total_return_pct']:.2f}%)")
+        f"Net profit/loss: ${metrics['final_value'] - cerebro.broker.startingcash:.2f} ({metrics['total_return_pct']:.2f}%)"
+    )
     print(f"Sharpe ratio:    {metrics['sharpe_ratio']:.2f}")
     print(f"Max drawdown:    {metrics['max_drawdown_pct']:.2f}%")
     print(f"Win rate:        {metrics['win_rate']:.2f}%")
@@ -335,28 +391,38 @@ def run_backtest_with_parameters(args, params):
     output_dir = "backtest_results"
     os.makedirs(output_dir, exist_ok=True)
 
-    plot_file = os.path.join(output_dir,
-        f"backtest_{args.strategy}_{args.symbol}_{args.timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
+    plot_file = os.path.join(
+        output_dir,
+        f"backtest_{args.strategy}_{args.symbol}_{args.timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+    )
 
     # Plot resultaten
     adapter.plot_results(filename=plot_file)
     print(f"\nPlot opgeslagen in: {plot_file}")
 
     # Sla configuratie op voor live trading
-    config_file = os.path.join(output_dir,
-        f"config_{args.strategy}_{args.symbol}_{args.timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    config_file = os.path.join(
+        output_dir,
+        f"config_{args.strategy}_{args.symbol}_{args.timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+    )
 
     # Maak config voor live trading
     live_config = {
-        "mt5": {"server": "FTMO-Demo2", "login": 0,  # Vul in voor live trading
+        "mt5": {
+            "server": "FTMO-Demo2",
+            "login": 0,  # Vul in voor live trading
             "password": "",  # Vul in voor live trading
-            "mt5_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe", },
-        "symbols": [args.symbol], "timeframe": args.timeframe, "interval": 300,
+            "mt5_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe",
+        },
+        "symbols": [args.symbol],
+        "timeframe": args.timeframe,
+        "interval": 300,
         "risk": {"risk_per_trade": 0.01, "max_daily_loss": 0.05},
-        "strategy": {"type": args.strategy, **params  # Voeg optimale parameters toe
-        }}
+        "strategy": {"type": args.strategy, **params},
+        # Voeg optimale parameters toe
+    }
 
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         json.dump(live_config, f, indent=2)
 
     print(f"Live trading configuratie opgeslagen in: {config_file}")
@@ -376,7 +442,8 @@ def main():
         # Voer backtest uit met beste parameters
         run_backtest_with_parameters(args, best_params)
     else:
-        print("Kon geen optimale parameters vinden. Controleer mogelijke fouten.")
+        print(
+            "Kon geen optimale parameters vinden. Controleer mogelijke fouten.")
 
     return 0
 
