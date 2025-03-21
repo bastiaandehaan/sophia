@@ -1,9 +1,10 @@
 # src/strategy.py
-import pandas as pd
-import numpy as np
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
+
+import numpy as np
+import pandas as pd
 
 
 class TurtleStrategy:

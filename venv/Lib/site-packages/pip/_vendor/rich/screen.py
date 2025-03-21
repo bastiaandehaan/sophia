@@ -1,9 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 
+from ._loop import loop_last
 from .segment import Segment
 from .style import StyleType
-from ._loop import loop_last
-
 
 if TYPE_CHECKING:
     from .console import (

@@ -10,8 +10,8 @@
 
 import functools
 import os
-import sys
 import os.path
+import sys
 from io import StringIO
 
 from pip._vendor.pygments.formatter import Formatter

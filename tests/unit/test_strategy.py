@@ -41,7 +41,8 @@ def test_calculate_indicators(turtle_strategy, sample_ohlc_data):
     assert (result["atr"].iloc[20:] > 0).all()
 
     # NaN waarden aan begin vanwege het rolling window
-    assert result["entry_high"].iloc[10:].notna().all()
+    # Aangepast: controleer vanaf entry_period (20) in plaats van index 10
+    assert result["entry_high"].iloc[turtle_strategy.entry_period:].notna().all()
 
 
 def test_check_signals_buy(turtle_strategy, mock_connector, sample_ohlc_data):

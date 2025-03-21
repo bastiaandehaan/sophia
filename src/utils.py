@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 
 def setup_logging(log_level: int = logging.INFO) -> logging.Logger:

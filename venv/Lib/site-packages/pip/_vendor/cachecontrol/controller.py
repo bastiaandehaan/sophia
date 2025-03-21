@@ -14,10 +14,9 @@ import time
 from email.utils import parsedate_tz
 from typing import TYPE_CHECKING, Collection, Mapping
 
-from pip._vendor.requests.structures import CaseInsensitiveDict
-
 from pip._vendor.cachecontrol.cache import DictCache, SeparateBodyBaseCache
 from pip._vendor.cachecontrol.serialize import Serializer
+from pip._vendor.requests.structures import CaseInsensitiveDict
 
 if TYPE_CHECKING:
     from typing import Literal

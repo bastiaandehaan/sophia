@@ -47,8 +47,8 @@ compression in Python 2 (see `CRIME attack`_).
 """
 from __future__ import absolute_import
 
-import OpenSSL.crypto
 import OpenSSL.SSL
+import OpenSSL.crypto
 from cryptography import x509
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 

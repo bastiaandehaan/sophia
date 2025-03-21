@@ -90,3 +90,21 @@
 2025-03-20 22:15:50,782 - INFO - Disconnected from MT5
 2025-03-20 22:15:50,782 - INFO - Verbinding met MT5 succesvol gesloten
 2025-03-20 22:15:50,782 - INFO - Sophia Trading System afgesloten
+2025-03-20 22:54:03,865 - INFO - ====== Sophia Trading System ======
+2025-03-20 22:54:03,865 - INFO - Opgestart op 2025-03-20 22:54:03
+2025-03-20 22:54:03,866 - INFO - Verbinden met MT5 op pad: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+2025-03-20 22:54:03,869 - INFO - Succesvol verbonden met MT5
+2025-03-20 22:54:03,869 - INFO - Account info opgehaald: Balans=79997.56 EUR
+2025-03-20 22:54:03,869 - INFO - Account balans: 79997.56 EUR
+2025-03-20 22:54:03,869 - INFO - Start trading voor symbolen: ['EURUSD', 'USDJPY']
+2025-03-20 22:54:03,905 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 22:54:12,746 - INFO - Afsluitsignaal ontvangen, bezig met stoppen...
+2025-03-20 23:08:29,383 - INFO - ====== Sophia Trading System ======
+2025-03-20 23:08:29,384 - INFO - Opgestart op 2025-03-20 23:08:29
+2025-03-20 23:08:29,384 - INFO - Verbinden met MT5 op pad: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+2025-03-20 23:08:29,386 - INFO - Succesvol verbonden met MT5
+2025-03-20 23:08:29,386 - INFO - Account info opgehaald: Balans=79997.56 EUR
+2025-03-20 23:08:29,386 - INFO - Account balans: 79997.56 EUR
+2025-03-20 23:08:29,386 - INFO - Start trading voor symbolen: ['EURUSD', 'USDJPY']
+2025-03-20 23:08:29,394 - INFO - Wacht 300.0 seconden tot volgende check...
+2025-03-20 23:08:40,174 - INFO - Afsluitsignaal ontvangen, bezig met stoppen...

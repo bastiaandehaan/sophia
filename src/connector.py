@@ -1,10 +1,10 @@
 # src/connector.py
+import logging
 import os
+from typing import Optional, Dict, Any, List
+
 import MetaTrader5 as mt5
 import pandas as pd
-import logging
-from datetime import datetime
-from typing import Optional, Dict, Any, List
 
 # Constants for timeframes
 TIMEFRAMES = {"M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,

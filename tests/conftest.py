@@ -18,7 +18,7 @@ sys.path.insert(0, project_root)
 def pytest_configure(config):
     """Registreer custom markers."""
     config.addinivalue_line("markers",
-        "integration: mark a test as an integration test")
+                            "integration: mark a test as an integration test")
 
 
 @pytest.fixture
@@ -42,8 +42,8 @@ def sample_ohlc_data():
     dates = pd.date_range(start="2023-01-01", periods=100)
     data = pd.DataFrame(
         {"open": np.linspace(1.0, 1.1, 100), "high": np.linspace(1.01, 1.11, 100),
-            "low": np.linspace(0.99, 1.09, 100),
-            "close": np.linspace(1.005, 1.105, 100), "time": dates})
+         "low": np.linspace(0.99, 1.09, 100), "close": np.linspace(1.005, 1.105, 100),
+         "time": dates})
 
     # Voeg een breakout toe om signalen te triggeren
     data.loc[data.index[-10:], "high"] *= 1.02
@@ -100,6 +100,24 @@ def mock_mt5():
 
 
 @pytest.fixture
+def connector(mock_mt5):
+    """Creëer een MT5Connector instantie voor tests."""
+    from src.connector import MT5Connector
+
+    config = {"mt5_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe",
+              "login": 12345678, "password": "test_password", "server": "Demo-Server"}
+
+    connector = MT5Connector(config)
+    connector.tf_map = {"H4": mock_mt5.TIMEFRAME_H4}  # Mock voor timeframe mapping
+
+    # Setup voor tests
+    connector.logger = MagicMock()
+    connector.connected = True
+
+    return connector
+
+
+@pytest.fixture
 def mock_connector():
     """Creëer een mock voor MT5Connector."""
     connector_mock = MagicMock()
@@ -112,9 +130,10 @@ def mock_connector():
     def get_mock_data(symbol, timeframe, bars_count=100):
         dates = pd.date_range(end=datetime.now(), periods=bars_count)
         data = pd.DataFrame({"open": np.linspace(1.1, 1.2, bars_count),
-            "high": np.linspace(1.12, 1.22, bars_count),
-            "low": np.linspace(1.09, 1.19, bars_count),
-            "close": np.linspace(1.11, 1.21, bars_count), "time": dates})
+                             "high": np.linspace(1.12, 1.22, bars_count),
+                             "low": np.linspace(1.09, 1.19, bars_count),
+                             "close": np.linspace(1.11, 1.21, bars_count),
+                             "time": dates})
 
         # Voeg een breakout toe in de laatste 10 bars
         data.loc[data.index[-10:], "high"] *= 1.02
@@ -126,16 +145,21 @@ def mock_connector():
 
     # Mock voor account_info
     connector_mock.get_account_info.return_value = {"balance": 10000.0,
-        "equity": 10000.0, "margin": 0.0, "free_margin": 10000.0, "margin_level": 0.0,
-        "currency": "USD"}
+                                                    "equity": 10000.0, "margin": 0.0,
+                                                    "free_margin": 10000.0,
+                                                    "margin_level": 0.0,
+                                                    "currency": "USD"}
 
     # Mock voor place_order en get_position
     connector_mock.place_order.return_value = {"success": True, "order_id": "12345",
-        "symbol": "EURUSD", "type": "BUY", "volume": 0.1, "price": 1.2000, "sl": 1.1950}
+                                               "symbol": "EURUSD", "type": "BUY",
+                                               "volume": 0.1, "price": 1.2000,
+                                               "sl": 1.1950}
 
     connector_mock.get_position.return_value = {"symbol": "EURUSD", "direction": "BUY",
-        "volume": 0.1, "open_price": 1.2000, "current_price": 1.2100, "profit": 100.0,
-        "sl": 1.1950}
+                                                "volume": 0.1, "open_price": 1.2000,
+                                                "current_price": 1.2100,
+                                                "profit": 100.0, "sl": 1.1950}
 
     return connector_mock
 
@@ -157,7 +181,7 @@ def test_config():
     """Standaard test configuratie."""
     return {
         "mt5": {"login": 12345678, "password": "test_password", "server": "Demo-Server",
-            "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe"},
+                "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe"},
         "symbols": ["EURUSD", "GBPUSD"], "timeframe": "H4", "interval": 300,
         "risk": {"risk_per_trade": 0.01, "max_daily_loss": 0.05},
         "strategy": {"entry_period": 20, "exit_period": 10, "atr_period": 14}}

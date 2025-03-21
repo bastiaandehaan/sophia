@@ -1,7 +1,9 @@
 # tests/integration/test_strategy_connector.py
-import pytest
+from unittest.mock import Mock
+
 import pandas as pd
-from unittest.mock import MagicMock, Mock
+import pytest
+
 from src.strategy import TurtleStrategy
 
 

@@ -1,11 +1,11 @@
 # src/main.py
-import sys
 import os
+import signal
+import sys
 import time
 import traceback
-import signal
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 # Voeg project root toe aan Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))

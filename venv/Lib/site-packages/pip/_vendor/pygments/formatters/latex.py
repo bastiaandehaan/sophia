@@ -15,7 +15,6 @@ from pip._vendor.pygments.lexer import Lexer, do_insertions
 from pip._vendor.pygments.token import Token, STANDARD_TYPES
 from pip._vendor.pygments.util import get_bool_opt, get_int_opt
 
-
 __all__ = ['LatexFormatter']
 
 

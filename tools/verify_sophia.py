@@ -6,10 +6,10 @@ and functioning properly.
 """
 import importlib
 import json
+import logging
 import os
 import sys
-import logging
-from typing import Dict, Any, List, Tuple
+from typing import List, Tuple
 
 # Add project root to sys.path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -181,7 +181,6 @@ class SophiaVerifier:
 
     def test_strategy_indicators(self) -> bool:
         """Test if the strategy indicators calculate correctly."""
-        from src.strategy import TurtleStrategy
         import pandas as pd
         import numpy as np
 
