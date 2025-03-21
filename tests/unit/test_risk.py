@@ -22,8 +22,8 @@ def test_risk_manager_init(risk_manager):
 def test_calculate_position_size_normal(risk_manager):
     """Test normale positiegrootte berekening."""
     # Test met 1% risico op $10,000 account met 50 pips stop (pip value $10)
-    position_size = risk_manager.calculate_position_size(
-        account_balance=10000.0, entry_price=1.2000, stop_loss=1.1950  # 50 pips stop
+    position_size = risk_manager.calculate_position_size(account_balance=10000.0,
+        entry_price=1.2000, stop_loss=1.1950  # 50 pips stop
     )
 
     # Verwachte berekening: $10,000 * 0.01 / (50 * $10) = 0.2 lots
@@ -35,10 +35,8 @@ def test_calculate_position_size_normal(risk_manager):
 
 def test_calculate_position_size_zero_stop(risk_manager):
     """Test positiegrootte met gelijke entry en stop."""
-    position_size = risk_manager.calculate_position_size(
-        account_balance=10000.0,
-        entry_price=1.2000,
-        stop_loss=1.2000,
+    position_size = risk_manager.calculate_position_size(account_balance=10000.0,
+        entry_price=1.2000, stop_loss=1.2000,
         # Gelijke entry en stop (zou division by zero veroorzaken)
     )
 
@@ -48,10 +46,8 @@ def test_calculate_position_size_zero_stop(risk_manager):
 
 def test_calculate_position_size_tight_stop(risk_manager):
     """Test positiegrootte met zeer nauwe stop."""
-    position_size = risk_manager.calculate_position_size(
-        account_balance=10000.0,
-        entry_price=1.2000,
-        stop_loss=1.1995,  # 5 pips stop, zeer nauw
+    position_size = risk_manager.calculate_position_size(account_balance=10000.0,
+        entry_price=1.2000, stop_loss=1.1995,  # 5 pips stop, zeer nauw
     )
 
     # Zou groter moeten zijn dan bij wijdere stop
@@ -61,11 +57,9 @@ def test_calculate_position_size_tight_stop(risk_manager):
 
 def test_calculate_position_size_large_account(risk_manager):
     """Test positiegrootte met groot account."""
-    position_size = risk_manager.calculate_position_size(
-        account_balance=1000000.0,
+    position_size = risk_manager.calculate_position_size(account_balance=1000000.0,
         # $1M account
-        entry_price=1.2000,
-        stop_loss=1.1950,  # 50 pips stop
+        entry_price=1.2000, stop_loss=1.1950,  # 50 pips stop
     )
 
     # Zou binnen limieten moeten blijven
@@ -78,8 +72,8 @@ def test_custom_risk_percentage():
 
     risk_manager = RiskManager(custom_config)
 
-    position_size = risk_manager.calculate_position_size(
-        account_balance=10000.0, entry_price=1.2000, stop_loss=1.1950  # 50 pips stop
+    position_size = risk_manager.calculate_position_size(account_balance=10000.0,
+        entry_price=1.2000, stop_loss=1.1950  # 50 pips stop
     )
 
     # Zou 5x groter moeten zijn dan met 1% risico

@@ -7,14 +7,8 @@ import MetaTrader5 as mt5
 import pandas as pd
 
 # Constants for timeframes
-TIMEFRAMES = {
-    "M1": mt5.TIMEFRAME_M1,
-    "M5": mt5.TIMEFRAME_M5,
-    "M15": mt5.TIMEFRAME_M15,
-    "H1": mt5.TIMEFRAME_H1,
-    "H4": mt5.TIMEFRAME_H4,
-    "D1": mt5.TIMEFRAME_D1,
-}
+TIMEFRAMES = {"M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
+    "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4, "D1": mt5.TIMEFRAME_D1, }
 
 
 class MT5Connector:
@@ -33,6 +27,8 @@ class MT5Connector:
         self.logger = logging.getLogger("sophia")
         self.connected = False
         self.tf_map = TIMEFRAMES
+        # Essentiële aanpassing: MT5 opslaan als instance variabele voor testbaarheid
+        self.mt5 = mt5
 
     def _validate_mt5_path(self) -> bool:
         """
@@ -51,8 +47,7 @@ class MT5Connector:
         common_paths = [
             r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe",
             r"C:\Program Files\MetaTrader 5\terminal64.exe",
-            r"C:\Program Files (x86)\MetaTrader 5\terminal64.exe",
-        ]
+            r"C:\Program Files (x86)\MetaTrader 5\terminal64.exe", ]
 
         # Probeer alternatieve paden
         for path in common_paths:
@@ -82,8 +77,8 @@ class MT5Connector:
         mt5_path = self.config.get("mt5_path", "")
         self.logger.info(f"Verbinden met MT5 op pad: {mt5_path}")
 
-        if not mt5.initialize(path=mt5_path):
-            self.logger.error(f"MT5 initialisatie mislukt: {mt5.last_error()}")
+        if not self.mt5.initialize(path=mt5_path):
+            self.logger.error(f"MT5 initialisatie mislukt: {self.mt5.last_error()}")
             return False
 
         # Login to MT5
@@ -91,8 +86,8 @@ class MT5Connector:
         password = self.config.get("password", "")
         server = self.config.get("server", "")
 
-        if not mt5.login(login=login, password=password, server=server):
-            self.logger.error(f"MT5 login mislukt: {mt5.last_error()}")
+        if not self.mt5.login(login=login, password=password, server=server):
+            self.logger.error(f"MT5 login mislukt: {self.mt5.last_error()}")
             self._shutdown_mt5()
             return False
 
@@ -117,12 +112,11 @@ class MT5Connector:
         """
         Sluit de MT5 verbinding veilig af.
         """
-        mt5.shutdown()
+        self.mt5.shutdown()
         self.connected = False
 
-    def get_historical_data(
-        self, symbol: str, timeframe: str, bars_count: int = 100
-    ) -> Optional[pd.DataFrame]:
+    def get_historical_data(self, symbol: str, timeframe: str, bars_count: int = 100) -> \
+    Optional[pd.DataFrame]:
         """
         Haal historische prijsdata op van MT5.
 
@@ -138,10 +132,10 @@ class MT5Connector:
             return None
 
         # Converteer timeframe string naar MT5 constante
-        tf = self.tf_map.get(timeframe, mt5.TIMEFRAME_D1)
+        tf = self.tf_map.get(timeframe, self.mt5.TIMEFRAME_D1)
 
         # Haal data op
-        rates = mt5.copy_rates_from_pos(symbol, tf, 0, bars_count)
+        rates = self.mt5.copy_rates_from_pos(symbol, tf, 0, bars_count)
         if rates is None or len(rates) == 0:
             self.logger.error(f"Geen data ontvangen voor {symbol}")
             return None
@@ -163,46 +157,30 @@ class MT5Connector:
             return {}
 
         try:
-            account_info = mt5.account_info()
+            account_info = self.mt5.account_info()
             if not account_info:
                 self.logger.error(
-                    f"Kon account informatie niet ophalen: {mt5.last_error()}"
-                )
+                    f"Kon account informatie niet ophalen: {self.mt5.last_error()}")
                 return {}
 
             # Converteer account info naar een dictionary
-            result = {
-                "balance": account_info.balance,
-                "equity": account_info.equity,
-                "margin": account_info.margin,
-                "free_margin": account_info.margin_free,
-                "margin_level": (
-                    account_info.margin_level
-                    if hasattr(account_info, "margin_level")
-                    else 0.0
-                ),
-                "currency": account_info.currency,
-            }
+            result = {"balance": account_info.balance, "equity": account_info.equity,
+                "margin": account_info.margin, "free_margin": account_info.margin_free,
+                "margin_level": (account_info.margin_level if hasattr(account_info,
+                                                                      "margin_level") else 0.0),
+                "currency": account_info.currency, }
 
             self.logger.info(
-                f"Account info opgehaald: Balans={result['balance']} {result['currency']}"
-            )
+                f"Account info opgehaald: Balans={result['balance']} {result['currency']}")
             return result
 
         except Exception as e:
             self.logger.error(f"Fout bij ophalen account informatie: {e}")
             return {}
 
-    def place_order(
-        self,
-        symbol: str,
-        order_type: str,
-        volume: float,
-        price: float = 0.0,
-        sl: float = 0.0,
-        tp: float = 0.0,
-        comment: str = "",
-    ) -> Dict[str, Any]:
+    def place_order(self, symbol: str, order_type: str, volume: float,
+            price: float = 0.0, sl: float = 0.0, tp: float = 0.0,
+            comment: str = "", ) -> Dict[str, Any]:
         """
         Plaatst een order in MT5.
 
@@ -225,58 +203,40 @@ class MT5Connector:
         try:
             # Bepaal order type
             mt5_order_type = (
-                mt5.ORDER_TYPE_BUY if order_type == "BUY" else mt5.ORDER_TYPE_SELL
-            )
+                self.mt5.ORDER_TYPE_BUY if order_type == "BUY" else self.mt5.ORDER_TYPE_SELL)
 
             # Haal symbool info op
-            symbol_info = mt5.symbol_info(symbol)
+            symbol_info = self.mt5.symbol_info(symbol)
             if not symbol_info or not symbol_info.visible:
                 self.logger.error(f"Symbool {symbol} niet beschikbaar")
                 return {"success": False, "error": f"Symbool {symbol} niet beschikbaar"}
 
             # Haal huidige prijs op als geen prijs is opgegeven
             if price <= 0:
-                tick = mt5.symbol_info_tick(symbol)
+                tick = self.mt5.symbol_info_tick(symbol)
                 price = tick.ask if order_type == "BUY" else tick.bid
 
             # Stel order request samen
-            request = {
-                "action": mt5.TRADE_ACTION_DEAL,
-                "symbol": symbol,
-                "volume": float(volume),
-                "type": mt5_order_type,
-                "price": price,
-                "sl": sl,
-                "tp": tp,
-                "deviation": 20,
-                "magic": 123456,
-                "comment": comment,
-                "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
-            }
+            request = {"action": self.mt5.TRADE_ACTION_DEAL, "symbol": symbol,
+                "volume": float(volume), "type": mt5_order_type, "price": price,
+                "sl": sl, "tp": tp, "deviation": 20, "magic": 123456,
+                "comment": comment, "type_time": self.mt5.ORDER_TIME_GTC,
+                "type_filling": self.mt5.ORDER_FILLING_IOC, }
 
             # Verstuur order
             self.logger.info(
-                f"Order versturen: {order_type} {volume} {symbol} @ {price} SL: {sl} TP: {tp}"
-            )
-            result = mt5.order_send(request)
+                f"Order versturen: {order_type} {volume} {symbol} @ {price} SL: {sl} TP: {tp}")
+            result = self.mt5.order_send(request)
 
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
+            if result.retcode != self.mt5.TRADE_RETCODE_DONE:
                 self.logger.error(f"Order mislukt met code: {result.retcode}")
                 return {"success": False, "error": f"Order mislukt: {result.retcode}"}
 
             # Order gelukt
             self.logger.info(f"Order geplaatst: Ticket #{result.order}")
-            return {
-                "success": True,
-                "order_id": str(result.order),
-                "symbol": symbol,
-                "type": order_type,
-                "volume": volume,
-                "price": price,
-                "sl": sl,
-                "tp": tp,
-            }
+            return {"success": True, "order_id": str(result.order), "symbol": symbol,
+                "type": order_type, "volume": volume, "price": price, "sl": sl,
+                "tp": tp, }
 
         except Exception as e:
             self.logger.error(f"Fout bij plaatsen order: {e}")
@@ -296,19 +256,14 @@ class MT5Connector:
             return None
 
         try:
-            positions = mt5.positions_get(symbol=symbol)
+            positions = self.mt5.positions_get(symbol=symbol)
             if positions and len(positions) > 0:
                 position = positions[0]
-                return {
-                    "symbol": position.symbol,
+                return {"symbol": position.symbol,
                     "direction": "BUY" if position.type == 0 else "SELL",
-                    "volume": position.volume,
-                    "open_price": position.price_open,
-                    "current_price": position.price_current,
-                    "profit": position.profit,
-                    "sl": position.sl,
-                    "tp": position.tp,
-                }
+                    "volume": position.volume, "open_price": position.price_open,
+                    "current_price": position.price_current, "profit": position.profit,
+                    "sl": position.sl, "tp": position.tp, }
             return None
 
         except Exception as e:
@@ -326,7 +281,7 @@ class MT5Connector:
             return {}
 
         try:
-            all_positions = mt5.positions_get()
+            all_positions = self.mt5.positions_get()
             result = {}
 
             if all_positions:
@@ -336,16 +291,12 @@ class MT5Connector:
                         result[symbol] = []
 
                     result[symbol].append(
-                        {
-                            "direction": "BUY" if position.type == 0 else "SELL",
+                        {"direction": "BUY" if position.type == 0 else "SELL",
                             "volume": position.volume,
                             "open_price": position.price_open,
                             "current_price": position.price_current,
-                            "profit": position.profit,
-                            "sl": position.sl,
-                            "tp": position.tp,
-                        }
-                    )
+                            "profit": position.profit, "sl": position.sl,
+                            "tp": position.tp, })
 
             return result
 
@@ -377,55 +328,38 @@ class MT5Connector:
             close_type = "SELL" if position["direction"] == "BUY" else "BUY"
 
             # Haal huidige marktprijzen op
-            tick = mt5.symbol_info_tick(symbol)
+            tick = self.mt5.symbol_info_tick(symbol)
             if not tick:
-                return {
-                    "success": False,
-                    "error": f"Kon prijsgegevens niet ophalen voor {symbol}",
-                }
+                return {"success": False,
+                    "error": f"Kon prijsgegevens niet ophalen voor {symbol}", }
 
             # Gebruik ask voor BUY en bid voor SELL
             close_price = tick.ask if close_type == "BUY" else tick.bid
 
             # Stel order request samen voor het sluiten van de positie
-            request = {
-                "action": mt5.TRADE_ACTION_DEAL,
-                "symbol": symbol,
-                "volume": position["volume"],
-                "type": (
-                    mt5.ORDER_TYPE_BUY if close_type == "BUY" else mt5.ORDER_TYPE_SELL
-                ),
+            request = {"action": self.mt5.TRADE_ACTION_DEAL, "symbol": symbol,
+                "volume": position["volume"], "type": (
+                    self.mt5.ORDER_TYPE_BUY if close_type == "BUY" else self.mt5.ORDER_TYPE_SELL),
                 "position": int(position.get("ticket", 0)),
                 # Ticket ID van de te sluiten positie
-                "price": close_price,
-                "deviation": 20,
-                "magic": 123456,
+                "price": close_price, "deviation": 20, "magic": 123456,
                 "comment": f"Sophia sluiting {position['direction']} positie",
-                "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
-            }
+                "type_time": self.mt5.ORDER_TIME_GTC,
+                "type_filling": self.mt5.ORDER_FILLING_IOC, }
 
             # Verstuur sluitingsorder
             self.logger.info(
-                f"Positie sluiten: {symbol} {position['direction']} {position['volume']} lots"
-            )
-            result = mt5.order_send(request)
+                f"Positie sluiten: {symbol} {position['direction']} {position['volume']} lots")
+            result = self.mt5.order_send(request)
 
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
+            if result.retcode != self.mt5.TRADE_RETCODE_DONE:
                 self.logger.error(f"Positie sluiten mislukt met code: {result.retcode}")
-                return {
-                    "success": False,
-                    "error": f"Positie sluiten mislukt: {result.retcode}",
-                }
+                return {"success": False,
+                    "error": f"Positie sluiten mislukt: {result.retcode}", }
 
             self.logger.info(f"Positie gesloten: {symbol} - Ticket #{result.order}")
-            return {
-                "success": True,
-                "order_id": str(result.order),
-                "symbol": symbol,
-                "closed_volume": position["volume"],
-                "close_price": close_price,
-            }
+            return {"success": True, "order_id": str(result.order), "symbol": symbol,
+                "closed_volume": position["volume"], "close_price": close_price, }
 
         except Exception as e:
             self.logger.error(f"Fout bij sluiten positie: {e}")
@@ -443,17 +377,14 @@ class MT5Connector:
 
         try:
             # Haal alle symbolen op
-            symbols = mt5.symbols_get()
+            symbols = self.mt5.symbols_get()
             if not symbols:
                 self.logger.warning("Geen symbolen gevonden")
                 return []
 
             # Filter op forex symbolen (als voorbeeld)
-            forex_symbols = [
-                symbol.name
-                for symbol in symbols
-                if symbol.visible and (len(symbol.name) == 6 or "/" in symbol.name)
-            ]
+            forex_symbols = [symbol.name for symbol in symbols if
+                symbol.visible and (len(symbol.name) == 6 or "/" in symbol.name)]
 
             return forex_symbols
 

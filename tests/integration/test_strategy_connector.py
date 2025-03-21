@@ -42,25 +42,17 @@ def test_complete_trading_workflow(mock_connector, mock_risk_manager, logger_fix
     position_size = 0.1
 
     # Mock een BUY signaal
-    mock_signal = {
-        "signal": "BUY",
+    mock_signal = {"signal": "BUY",
         "meta": {"entry_price": entry_price, "stop_loss": stop_loss, "atr": 0.005},
-        "timestamp": pd.Timestamp.now(),
-    }
+        "timestamp": pd.Timestamp.now(), }
 
     # Mock risico manager
     mock_risk_manager.calculate_position_size.return_value = position_size
 
     # Mock order response
     order_id = "12345"
-    mock_connector.place_order.return_value = {
-        "order_id": order_id,
-        "symbol": symbol,
-        "type": "BUY",
-        "volume": position_size,
-        "price": entry_price,
-        "sl": stop_loss,
-    }
+    mock_connector.place_order.return_value = {"order_id": order_id, "symbol": symbol,
+        "type": "BUY", "volume": position_size, "price": entry_price, "sl": stop_loss, }
 
     # Act
     strategy = TurtleStrategy(mock_connector, mock_risk_manager, config)
@@ -81,13 +73,9 @@ def test_complete_trading_workflow(mock_connector, mock_risk_manager, logger_fix
         mock_order_data = mock_connector.place_order.return_value
 
         # Update positietracking (normaal zou strategy.execute_signal dit doen)
-        strategy.positions[symbol] = {
-            "direction": signal,
-            "entry_price": entry_price,
-            "stop_loss": meta.get("stop_loss"),
-            "size": position_size,
-            "entry_time": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
+        strategy.positions[symbol] = {"direction": signal, "entry_price": entry_price,
+            "stop_loss": meta.get("stop_loss"), "size": position_size,
+            "entry_time": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"), }
 
         # Controleer dat positie correct is geregistreerd
         assert symbol in strategy.positions
@@ -97,15 +85,12 @@ def test_complete_trading_workflow(mock_connector, mock_risk_manager, logger_fix
 
         # Test position close (als we execute_signal zouden aanroepen)
         # AANGEPAST: get_position_info → get_position en aangepaste key structure
-        mock_connector.get_position.return_value = {
-            "symbol": symbol,
+        mock_connector.get_position.return_value = {"symbol": symbol,
             "direction": signal,  # Aangepast van 'type'
-            "volume": position_size,
-            "open_price": entry_price,
+            "volume": position_size, "open_price": entry_price,
             # Aangepast van 'price_open'
             "current_price": 1.2100,  # Aangepast van 'price_current'
-            "sl": stop_loss,
-            "profit": 100.0,  # Extra veld voor volledigheid
+            "sl": stop_loss, "profit": 100.0,  # Extra veld voor volledigheid
         }
 
         # Simuleer een exitstrategie-aanroep (mock voor nu)
