@@ -1,35 +1,20 @@
 {
-  "mt5": {
-    "login": 1520533067,
-    "password": "UP7d??y4Wg",
-    "server": "FTMO-Demo2",
-    "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe",
-    "mt5_path_alt": "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
-  },
-  "symbols": [
-    "EURUSD",
-    "USDJPY"
-  ],
-  "timeframe": "H4",
-  "interval": 300,
-  "risk": {
-    "risk_per_trade": 0.01,
-    "max_daily_loss": 0.05,
-    "max_positions": 5,
-    "max_correlated": 2
-  },
-  "strategy": {
-    "entry_period": 40,
-    "exit_period": 20,
-    "atr_period": 14,
-    "vol_filter": true,
-    "vol_lookback": 100,
-    "vol_threshold": 1.2
-  },
-  "logging": {
-    "level": "INFO",
-    "console_output": true,
-    "file_output": true,
-    "max_log_files": 10
-  }
+    "mt5": {
+        "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe",
+        "login": 1520533067,
+        "password": "UP7d??y4Wg",
+        "server": "FTMO-Demo2"
+    },
+    "risk": {
+        "risk_per_trade": 0.01,
+        "max_daily_loss": 0.05,
+        "max_positions": 5,
+        "max_correlated": 2
+    },
+    "symbols": [
+        "EURUSD",
+        "USDJPY"
+    ],
+    "timeframe": "M30",
+    "interval": 300
 }

@@ -1,1303 +1,1721 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Eenvoudig dashboard voor Sophia Trading Framework.
-Biedt een interface om backtest, optimalisatie, en live trading te beheren.
+Sophia Trading Framework Dashboard
+Een Streamlit dashboard voor het beheren van backtests, optimalisatie
+en live trading binnen het Sophia Trading Framework.
 """
+# BELANGRIJK: set_page_config MOET als allereerste Streamlit commando worden aangeroepen
+import streamlit as st
 
-import json
+st.set_page_config(
+    page_title="Sophia Trading Dashboard",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# Vervolgens de rest van je imports
 import os
-import subprocess
 import sys
-import threading
-import tkinter as tk
-from datetime import datetime
-from tkinter import ttk, messagebox, filedialog
+import subprocess
+import json
+import pandas as pd
+import numpy as np
+import datetime
+import time
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+from pathlib import Path
 
-# Zorg dat het project root path in sys.path zit voor imports
+# Zorg dat project root in sys.path staat
 script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(script_dir))
+project_root = os.path.dirname(
+    os.path.dirname(script_dir))  # Aangepast voor juiste structuur
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# Probeer framework modules te importeren
+try:
+    from src.utils import load_config, save_config
+    from src.connector import MT5Connector
+    from src.risk import RiskManager
+    from src.strategy import TurtleStrategy
+    from src.strategy_ema import EMAStrategy
+    from src.analysis.backtrader_adapter import BacktraderAdapter
 
-class SophiaDashboard:
-    """Sophia Trading Framework Dashboard."""
+    SOPHIA_IMPORTS_SUCCESS = True
+except ImportError as e:
+    SOPHIA_IMPORTS_SUCCESS = False
+    import_error = str(e)
 
-    def __init__(self, root):
-        """
-        Initialiseer het dashboard.
-
-        Args:
-            root: Tkinter root window
-        """
-        self.root = root
-        self.root.title("Sophia Trading Framework Dashboard")
-
-        # Stel window grootte in
-        width = 800
-        height = 650
-        self.root.geometry(f"{width}x{height}")
-        self.root.minsize(width, height)
-
-        # Configuratie laden
-        self.config = self.load_config()
-
-        # Tabbladen maken
-        self.create_notebook()
-
-        # Status bar
-        self.status_var = tk.StringVar()
-        self.status_var.set("Gereed")
-        self.status_bar = ttk.Label(
-            self.root, textvariable=self.status_var, relief=tk.SUNKEN,
-            anchor=tk.W
-        )
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-
-    def load_config(self):
-        """
-        Laad de configuratie uit settings.json.
-
-        Returns:
-            Dictionary met configuratie
-        """
-        config_path = os.path.join(project_root, "config", "settings.json")
-        try:
-            with open(config_path, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            messagebox.showwarning(
-                "Configuratie laden", f"Kon configuratie niet laden: {e}"
-            )
-            return {}
-
-    def save_config(self, config):
-        """
-        Sla configuratie op naar settings.json.
-
-        Args:
-            config: Dictionary met configuratie
-        """
-        config_path = os.path.join(project_root, "config", "settings.json")
-        try:
-            with open(config_path, "w") as f:
-                json.dump(config, f, indent=2)
-            self.show_status("Configuratie opgeslagen")
-        except Exception as e:
-            messagebox.showerror(
-                "Configuratie opslaan", f"Kon configuratie niet opslaan: {e}"
-            )
-
-    def create_notebook(self):
-        """Maak tabbladen voor de verschillende functies."""
-        self.notebook = ttk.Notebook(self.root)
-
-        # Tabbladen
-        self.backtest_tab = ttk.Frame(self.notebook)
-        self.optimize_tab = ttk.Frame(self.notebook)
-        self.live_tab = ttk.Frame(self.notebook)
-        self.config_tab = ttk.Frame(self.notebook)
-
-        # Tabbladen toevoegen
-        self.notebook.add(self.backtest_tab, text="Backtest")
-        self.notebook.add(self.optimize_tab, text="Optimalisatie")
-        self.notebook.add(self.live_tab, text="Live Trading")
-        self.notebook.add(self.config_tab, text="Configuratie")
-
-        self.notebook.pack(expand=1, fill=tk.BOTH, padx=5, pady=5)
-
-        # Tabbladen vullen
-        self.setup_backtest_tab()
-        self.setup_optimize_tab()
-        self.setup_live_tab()
-        self.setup_config_tab()
-
-    def setup_backtest_tab(self):
-        """Stel het backtest tabblad in."""
-        # Main frame
-        main_frame = ttk.Frame(self.backtest_tab)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Input frame links
-        input_frame = ttk.LabelFrame(main_frame, text="Backtest Parameters")
-        input_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5,
-                         pady=5)
-
-        # Strategie selectie
-        ttk.Label(input_frame, text="Strategie:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_strategy_var = tk.StringVar(value="turtle")
-        strategy_combobox = ttk.Combobox(
-            input_frame,
-            textvariable=self.backtest_strategy_var,
-            values=["turtle", "ema"],
-            state="readonly",
-        )
-        strategy_combobox.grid(row=0, column=1, sticky=tk.W + tk.E, padx=5,
-                               pady=5)
-        strategy_combobox.bind("<<ComboboxSelected>>",
-                               self.on_backtest_strategy_change)
-
-        # Symbolen
-        ttk.Label(input_frame, text="Symbolen:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        symbols = self.config.get("symbols", ["EURUSD", "USDJPY"])
-        self.backtest_symbols_var = tk.StringVar(value=", ".join(symbols))
-        ttk.Entry(input_frame, textvariable=self.backtest_symbols_var).grid(
-            row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Timeframe
-        ttk.Label(input_frame, text="Timeframe:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_timeframe_var = tk.StringVar(
-            value=self.config.get("timeframe", "H4")
-        )
-        ttk.Combobox(
-            input_frame,
-            textvariable=self.backtest_timeframe_var,
-            values=["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-            state="readonly",
-        ).grid(row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Periode
-        ttk.Label(input_frame, text="Periode:").grid(
-            row=3, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_period_var = tk.StringVar(value="1y")
-        ttk.Combobox(
-            input_frame,
-            textvariable=self.backtest_period_var,
-            values=["1m", "3m", "6m", "1y", "2y", "5y"],
-            state="readonly",
-        ).grid(row=3, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Initieel kapitaal
-        ttk.Label(input_frame, text="Initieel kapitaal:").grid(
-            row=4, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_cash_var = tk.StringVar(value="10000")
-        ttk.Entry(input_frame, textvariable=self.backtest_cash_var).grid(
-            row=4, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Strategie parameters frame
-        strat_frame = ttk.LabelFrame(main_frame, text="Strategie Parameters")
-        strat_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5,
-                         pady=5)
-
-        # Maak frames voor verschillende strategieën
-        self.turtle_params_frame = ttk.Frame(strat_frame)
-        self.ema_params_frame = ttk.Frame(strat_frame)
-
+# 2. Session State Initialisatie
+if 'backtest_params' not in st.session_state:
+    st.session_state.backtest_params = {
+        "strategy": "turtle",
+        "symbols": "EURUSD,USDJPY",
+        "timeframe": "H4",
+        "period": "1y",
+        "initial_cash": 10000,
+        "plot": True,
         # Turtle parameters
-        ttk.Label(self.turtle_params_frame, text="Entry Period:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_entry_period_var = tk.StringVar(value="20")
-        ttk.Entry(
-            self.turtle_params_frame,
-            textvariable=self.backtest_entry_period_var
-        ).grid(row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Label(self.turtle_params_frame, text="Exit Period:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_exit_period_var = tk.StringVar(value="10")
-        ttk.Entry(
-            self.turtle_params_frame, textvariable=self.backtest_exit_period_var
-        ).grid(row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Label(self.turtle_params_frame, text="ATR Period:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_atr_period_var = tk.StringVar(value="14")
-        ttk.Entry(
-            self.turtle_params_frame, textvariable=self.backtest_atr_period_var
-        ).grid(row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
+        "entry_period": 20,
+        "exit_period": 10,
+        "atr_period": 14,
+        "vol_filter": True,
         # EMA parameters
-        ttk.Label(self.ema_params_frame, text="Fast EMA:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_fast_ema_var = tk.StringVar(value="9")
-        ttk.Entry(self.ema_params_frame,
-                  textvariable=self.backtest_fast_ema_var).grid(
-            row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        ttk.Label(self.ema_params_frame, text="Slow EMA:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_slow_ema_var = tk.StringVar(value="21")
-        ttk.Entry(self.ema_params_frame,
-                  textvariable=self.backtest_slow_ema_var).grid(
-            row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        ttk.Label(self.ema_params_frame, text="Signal EMA:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.backtest_signal_ema_var = tk.StringVar(value="5")
-        ttk.Entry(
-            self.ema_params_frame, textvariable=self.backtest_signal_ema_var
-        ).grid(row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Toon juiste parameters frame o.b.v. geselecteerde strategie
-        self.update_backtest_parameters_frame()
-
-        # Opties
-        options_frame = ttk.LabelFrame(self.backtest_tab, text="Opties")
-        options_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        self.backtest_plot_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            options_frame, text="Plot resultaten",
-            variable=self.backtest_plot_var
-        ).pack(side=tk.LEFT, padx=5, pady=5)
-
-        # Output frame
-        output_frame = ttk.LabelFrame(self.backtest_tab, text="Uitvoer")
-        output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        # Output textbox met scrollbar
-        scrollbar = ttk.Scrollbar(output_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.backtest_output = tk.Text(
-            output_frame,
-            height=10,
-            yscrollcommand=scrollbar.set,
-            wrap=tk.WORD,
-            bg="#f0f0f0",
-        )
-        self.backtest_output.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        scrollbar.config(command=self.backtest_output.yview)
-
-        # Buttons
-        button_frame = ttk.Frame(self.backtest_tab)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        ttk.Button(button_frame, text="Start Backtest",
-                   command=self.run_backtest).pack(
-            side=tk.RIGHT, padx=5
-        )
-
-        ttk.Button(
-            button_frame,
-            text="Open Resultaten Map",
-            command=lambda: self.open_folder("backtest_results"),
-        ).pack(side=tk.RIGHT, padx=5)
-
-    def setup_optimize_tab(self):
-        """Stel het optimalisatie tabblad in."""
-        # Main frame
-        main_frame = ttk.Frame(self.optimize_tab)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Input frame links
-        input_frame = ttk.LabelFrame(main_frame,
-                                     text="Optimalisatie Parameters")
-        input_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5,
-                         pady=5)
-
-        # Strategie selectie
-        ttk.Label(input_frame, text="Strategie:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_strategy_var = tk.StringVar(value="turtle")
-        strategy_combobox = ttk.Combobox(
-            input_frame,
-            textvariable=self.optimize_strategy_var,
-            values=["turtle", "ema"],
-            state="readonly",
-        )
-        strategy_combobox.grid(row=0, column=1, sticky=tk.W + tk.E, padx=5,
-                               pady=5)
-        strategy_combobox.bind("<<ComboboxSelected>>",
-                               self.on_optimize_strategy_change)
-
-        # Symbolen
-        ttk.Label(input_frame, text="Symbolen:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        symbols = self.config.get("symbols", ["EURUSD", "USDJPY"])
-        self.optimize_symbols_var = tk.StringVar(value=", ".join(symbols))
-        ttk.Entry(input_frame, textvariable=self.optimize_symbols_var).grid(
-            row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Timeframe
-        ttk.Label(input_frame, text="Timeframe:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_timeframe_var = tk.StringVar(
-            value=self.config.get("timeframe", "H4")
-        )
-        ttk.Combobox(
-            input_frame,
-            textvariable=self.optimize_timeframe_var,
-            values=["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-            state="readonly",
-        ).grid(row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Periode
-        ttk.Label(input_frame, text="Periode:").grid(
-            row=3, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_period_var = tk.StringVar(value="1y")
-        ttk.Combobox(
-            input_frame,
-            textvariable=self.optimize_period_var,
-            values=["1m", "3m", "6m", "1y", "2y", "5y"],
-            state="readonly",
-        ).grid(row=3, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Metric om te optimaliseren
-        ttk.Label(input_frame, text="Optimaliseer voor:").grid(
-            row=4, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_metric_var = tk.StringVar(value="sharpe")
-        ttk.Combobox(
-            input_frame,
-            textvariable=self.optimize_metric_var,
-            values=["sharpe", "return", "drawdown", "profit_factor"],
-            state="readonly",
-        ).grid(row=4, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Maximum combinaties
-        ttk.Label(input_frame, text="Max combinaties:").grid(
-            row=5, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_max_combinations_var = tk.StringVar(value="50")
-        ttk.Entry(input_frame,
-                  textvariable=self.optimize_max_combinations_var).grid(
-            row=5, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Parameter ranges frame
-        param_frame = ttk.LabelFrame(main_frame, text="Parameter Bereiken")
-        param_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5,
-                         pady=5)
-
-        # Maak frames voor verschillende strategieën
-        self.turtle_opt_frame = ttk.Frame(param_frame)
-        self.ema_opt_frame = ttk.Frame(param_frame)
-
-        # Turtle parameters
-        ttk.Label(self.turtle_opt_frame, text="Entry Period:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_entry_range_var = tk.StringVar(value="10,20,30,40")
-        ttk.Entry(
-            self.turtle_opt_frame, textvariable=self.optimize_entry_range_var
-        ).grid(row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Label(self.turtle_opt_frame, text="Exit Period:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_exit_range_var = tk.StringVar(value="5,10,15,20")
-        ttk.Entry(
-            self.turtle_opt_frame, textvariable=self.optimize_exit_range_var
-        ).grid(row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Label(self.turtle_opt_frame, text="ATR Period:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_atr_range_var = tk.StringVar(value="10,14,20")
-        ttk.Entry(self.turtle_opt_frame,
-                  textvariable=self.optimize_atr_range_var).grid(
-            row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # EMA parameters
-        ttk.Label(self.ema_opt_frame, text="Fast EMA:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_fast_ema_range_var = tk.StringVar(value="5,9,12,15")
-        ttk.Entry(
-            self.ema_opt_frame, textvariable=self.optimize_fast_ema_range_var
-        ).grid(row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Label(self.ema_opt_frame, text="Slow EMA:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_slow_ema_range_var = tk.StringVar(value="20,25,30")
-        ttk.Entry(
-            self.ema_opt_frame, textvariable=self.optimize_slow_ema_range_var
-        ).grid(row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Label(self.ema_opt_frame, text="Signal EMA:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.optimize_signal_ema_range_var = tk.StringVar(value="5,7,9")
-        ttk.Entry(
-            self.ema_opt_frame, textvariable=self.optimize_signal_ema_range_var
-        ).grid(row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Beschrijving labels
-        ttk.Label(self.turtle_opt_frame, text="Komma-gescheiden waarden").grid(
-            row=3, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5
-        )
-
-        ttk.Label(self.ema_opt_frame, text="Komma-gescheiden waarden").grid(
-            row=3, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5
-        )
-
-        # Toon juiste parameters frame o.b.v. geselecteerde strategie
-        self.update_optimize_parameters_frame()
-
-        # Output frame
-        output_frame = ttk.LabelFrame(self.optimize_tab, text="Uitvoer")
-        output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        # Output textbox met scrollbar
-        scrollbar = ttk.Scrollbar(output_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.optimize_output = tk.Text(
-            output_frame,
-            height=10,
-            yscrollcommand=scrollbar.set,
-            wrap=tk.WORD,
-            bg="#f0f0f0",
-        )
-        self.optimize_output.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        scrollbar.config(command=self.optimize_output.yview)
-
-        # Buttons
-        button_frame = ttk.Frame(self.optimize_tab)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        ttk.Button(
-            button_frame, text="Start Optimalisatie",
-            command=self.run_optimization
-        ).pack(side=tk.RIGHT, padx=5)
-
-        ttk.Button(
-            button_frame,
-            text="Open Resultaten Map",
-            command=lambda: self.open_folder("optimization_results"),
-        ).pack(side=tk.RIGHT, padx=5)
-
-    def setup_live_tab(self):
-        """Stel het live trading tabblad in."""
-        # Main frame
-        main_frame = ttk.Frame(self.live_tab)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # MT5 status frame
-        status_frame = ttk.LabelFrame(main_frame, text="MetaTrader 5 Status")
-        status_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        # Status indicators
-        self.mt5_status_var = tk.StringVar(value="Niet verbonden")
-        ttk.Label(status_frame, text="Status:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        ttk.Label(status_frame, textvariable=self.mt5_status_var).grid(
-            row=0, column=1, sticky=tk.W, padx=5, pady=5
-        )
-
-        # Verbindingsbutton
-        self.connect_button = ttk.Button(
-            status_frame, text="Verbinden", command=self.toggle_connection
-        )
-        self.connect_button.grid(row=0, column=2, padx=5, pady=5)
-
-        # Account info indicators
-        self.account_balance_var = tk.StringVar(value="- €")
-        ttk.Label(status_frame, text="Balans:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        ttk.Label(status_frame, textvariable=self.account_balance_var).grid(
-            row=1, column=1, sticky=tk.W, padx=5, pady=5
-        )
-
-        self.account_equity_var = tk.StringVar(value="- €")
-        ttk.Label(status_frame, text="Equity:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        ttk.Label(status_frame, textvariable=self.account_equity_var).grid(
-            row=2, column=1, sticky=tk.W, padx=5, pady=5
-        )
-
-        # Strategie selectie frame
-        strategy_frame = ttk.LabelFrame(main_frame, text="Trading Strategie")
-        strategy_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        # Strategie selectie
-        ttk.Label(strategy_frame, text="Actieve strategie:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.live_strategy_var = tk.StringVar(value="turtle")
-        ttk.Combobox(
-            strategy_frame,
-            textvariable=self.live_strategy_var,
-            values=["turtle", "ema"],
-            state="readonly",
-        ).grid(row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Symbolen
-        ttk.Label(strategy_frame, text="Symbolen:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        symbols = self.config.get("symbols", ["EURUSD", "USDJPY"])
-        self.live_symbols_var = tk.StringVar(value=", ".join(symbols))
-        ttk.Entry(strategy_frame, textvariable=self.live_symbols_var).grid(
-            row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Timeframe
-        ttk.Label(strategy_frame, text="Timeframe:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.live_timeframe_var = tk.StringVar(
-            value=self.config.get("timeframe", "H4"))
-        ttk.Combobox(
-            strategy_frame,
-            textvariable=self.live_timeframe_var,
-            values=["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-            state="readonly",
-        ).grid(row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Risico
-        ttk.Label(strategy_frame, text="Risico per trade:").grid(
-            row=3, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        risk_frame = ttk.Frame(strategy_frame)
-        risk_frame.grid(row=3, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        self.live_risk_var = tk.StringVar(value="1")
-        ttk.Entry(risk_frame, textvariable=self.live_risk_var, width=5).pack(
-            side=tk.LEFT
-        )
-        ttk.Label(risk_frame, text="%").pack(side=tk.LEFT)
-
-        # Interval
-        ttk.Label(strategy_frame, text="Check interval:").grid(
-            row=4, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        interval_frame = ttk.Frame(strategy_frame)
-        interval_frame.grid(row=4, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        self.live_interval_var = tk.StringVar(value="300")
-        ttk.Entry(interval_frame, textvariable=self.live_interval_var,
-                  width=5).pack(
-            side=tk.LEFT
-        )
-        ttk.Label(interval_frame, text="seconden").pack(side=tk.LEFT)
-
-        # Open posities frame
-        positions_frame = ttk.LabelFrame(main_frame, text="Open Posities")
-        positions_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Treeview voor posities
-        self.positions_tree = ttk.Treeview(
-            positions_frame,
-            columns=(
-            "symbol", "direction", "size", "entry", "current", "profit"),
-            show="headings",
-            height=5,
-        )
-
-        # Definieer kolommen
-        self.positions_tree.heading("symbol", text="Symbool")
-        self.positions_tree.heading("direction", text="Richting")
-        self.positions_tree.heading("size", text="Grootte")
-        self.positions_tree.heading("entry", text="Entry")
-        self.positions_tree.heading("current", text="Huidig")
-        self.positions_tree.heading("profit", text="Winst/Verlies")
-
-        # Kolom breedtes
-        self.positions_tree.column("symbol", width=80)
-        self.positions_tree.column("direction", width=80)
-        self.positions_tree.column("size", width=80)
-        self.positions_tree.column("entry", width=80)
-        self.positions_tree.column("current", width=80)
-        self.positions_tree.column("profit", width=100)
-
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(
-            positions_frame, orient="vertical",
-            command=self.positions_tree.yview
-        )
-        self.positions_tree.configure(yscrollcommand=scrollbar.set)
-
-        # Layout
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.positions_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Log frame
-        log_frame = ttk.LabelFrame(main_frame, text="Trading Log")
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Log textbox met scrollbar
-        scrollbar = ttk.Scrollbar(log_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.live_log = tk.Text(
-            log_frame,
-            height=10,
-            yscrollcommand=scrollbar.set,
-            wrap=tk.WORD,
-            bg="#f0f0f0",
-        )
-        self.live_log.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        scrollbar.config(command=self.live_log.yview)
-
-        # Buttons
-        button_frame = ttk.Frame(self.live_tab)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        self.start_button = ttk.Button(
-            button_frame, text="Start Trading", command=self.start_trading
-        )
-        self.start_button.pack(side=tk.LEFT, padx=5)
-
-        self.stop_button = ttk.Button(
-            button_frame,
-            text="Stop Trading",
-            command=self.stop_trading,
-            state=tk.DISABLED,
-        )
-        self.stop_button.pack(side=tk.LEFT, padx=5)
-
-        ttk.Button(
-            button_frame, text="Sluit Alle Posities",
-            command=self.close_all_positions
-        ).pack(side=tk.RIGHT, padx=5)
-
-    def setup_config_tab(self):
-        """Stel het configuratie tabblad in."""
-        # Main frame
-        main_frame = ttk.Frame(self.config_tab)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # MT5 configuratie
-        mt5_frame = ttk.LabelFrame(main_frame, text="MetaTrader 5 Configuratie")
-        mt5_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        # MT5 pad
-        ttk.Label(mt5_frame, text="MT5 pad:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.mt5_path_var = tk.StringVar(
-            value=self.config.get("mt5", {}).get(
-                "mt5_path", "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
-            )
-        )
-        path_frame = ttk.Frame(mt5_frame)
-        path_frame.grid(row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        ttk.Entry(path_frame, textvariable=self.mt5_path_var).pack(
-            side=tk.LEFT, fill=tk.X, expand=True
-        )
-        ttk.Button(path_frame, text="Bladeren",
-                   command=self.browse_mt5_path).pack(
-            side=tk.RIGHT
-        )
-
-        # MT5 login
-        ttk.Label(mt5_frame, text="Login:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.mt5_login_var = tk.StringVar(
-            value=str(self.config.get("mt5", {}).get("login", ""))
-        )
-        ttk.Entry(mt5_frame, textvariable=self.mt5_login_var).grid(
-            row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # MT5 wachtwoord
-        ttk.Label(mt5_frame, text="Wachtwoord:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.mt5_password_var = tk.StringVar(
-            value=self.config.get("mt5", {}).get("password", "")
-        )
-        ttk.Entry(mt5_frame, textvariable=self.mt5_password_var, show="*").grid(
-            row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # MT5 server
-        ttk.Label(mt5_frame, text="Server:").grid(
-            row=3, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.mt5_server_var = tk.StringVar(
-            value=self.config.get("mt5", {}).get("server", "")
-        )
-        ttk.Entry(mt5_frame, textvariable=self.mt5_server_var).grid(
-            row=3, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Risico configuratie
-        risk_frame = ttk.LabelFrame(main_frame, text="Risico Configuratie")
-        risk_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        # Risico per trade
-        ttk.Label(risk_frame, text="Risico per trade (%):").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.risk_per_trade_var = tk.StringVar(
-            value=str(
-                self.config.get("risk", {}).get("risk_per_trade", 0.01) * 100)
-        )
-        ttk.Entry(risk_frame, textvariable=self.risk_per_trade_var).grid(
-            row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Max dagelijks verlies
-        ttk.Label(risk_frame, text="Max dagelijks verlies (%):").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.max_daily_loss_var = tk.StringVar(
-            value=str(
-                self.config.get("risk", {}).get("max_daily_loss", 0.05) * 100)
-        )
-        ttk.Entry(risk_frame, textvariable=self.max_daily_loss_var).grid(
-            row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Max posities
-        ttk.Label(risk_frame, text="Max aantal posities:").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.max_positions_var = tk.StringVar(
-            value=str(self.config.get("risk", {}).get("max_positions", 5))
-        )
-        ttk.Entry(risk_frame, textvariable=self.max_positions_var).grid(
-            row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Max gecorreleerde posities
-        ttk.Label(risk_frame, text="Max gecorreleerde posities:").grid(
-            row=3, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.max_correlated_var = tk.StringVar(
-            value=str(self.config.get("risk", {}).get("max_correlated", 2))
-        )
-        ttk.Entry(risk_frame, textvariable=self.max_correlated_var).grid(
-            row=3, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Algemene configuratie
-        general_frame = ttk.LabelFrame(main_frame, text="Algemene Configuratie")
-        general_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        # Symbolen
-        ttk.Label(general_frame, text="Symbolen:").grid(
-            row=0, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.symbols_var = tk.StringVar(
-            value=", ".join(self.config.get("symbols", ["EURUSD", "USDJPY"]))
-        )
-        ttk.Entry(general_frame, textvariable=self.symbols_var).grid(
-            row=0, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Timeframe
-        ttk.Label(general_frame, text="Timeframe:").grid(
-            row=1, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.timeframe_var = tk.StringVar(
-            value=self.config.get("timeframe", "H4"))
-        ttk.Combobox(
-            general_frame,
-            textvariable=self.timeframe_var,
-            values=["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-            state="readonly",
-        ).grid(row=1, column=1, sticky=tk.W + tk.E, padx=5, pady=5)
-
-        # Interval
-        ttk.Label(general_frame, text="Check interval (s):").grid(
-            row=2, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        self.interval_var = tk.StringVar(
-            value=str(self.config.get("interval", 300)))
-        ttk.Entry(general_frame, textvariable=self.interval_var).grid(
-            row=2, column=1, sticky=tk.W + tk.E, padx=5, pady=5
-        )
-
-        # Buttons
-        button_frame = ttk.Frame(self.config_tab)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        ttk.Button(button_frame, text="Opslaan",
-                   command=self.save_configuration).pack(
-            side=tk.RIGHT, padx=5
-        )
-
-        ttk.Button(
-            button_frame, text="Herstellen", command=self.reset_configuration
-        ).pack(side=tk.RIGHT, padx=5)
-
-    # Event handlers
-    def on_backtest_strategy_change(self, event):
-        """Handler voor wijzigen strategie in backtest tab."""
-        self.update_backtest_parameters_frame()
-
-    def on_optimize_strategy_change(self, event):
-        """Handler voor wijzigen strategie in optimalisatie tab."""
-        self.update_optimize_parameters_frame()
-
-    def update_backtest_parameters_frame(self):
-        """Update parameters frame op basis van geselecteerde strategie in backtest tab."""
-        strategy = self.backtest_strategy_var.get()
-
-        # Verwijder huidige parameters frame
-        self.turtle_params_frame.pack_forget()
-        self.ema_params_frame.pack_forget()
-
-        # Toon juiste parameters frame
-        if strategy == "turtle":
-            self.turtle_params_frame.pack(fill=tk.BOTH, expand=True, padx=5,
-                                          pady=5)
-        elif strategy == "ema":
-            self.ema_params_frame.pack(fill=tk.BOTH, expand=True, padx=5,
-                                       pady=5)
-
-    def update_optimize_parameters_frame(self):
-        """Update parameters frame op basis van geselecteerde strategie in optimalisatie tab."""
-        strategy = self.optimize_strategy_var.get()
-
-        # Verwijder huidige parameters frame
-        self.turtle_opt_frame.pack_forget()
-        self.ema_opt_frame.pack_forget()
-
-        # Toon juiste parameters frame
-        if strategy == "turtle":
-            self.turtle_opt_frame.pack(fill=tk.BOTH, expand=True, padx=5,
-                                       pady=5)
-        elif strategy == "ema":
-            self.ema_opt_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-    def browse_mt5_path(self):
-        """Open file browser voor MT5 executable."""
-        filename = filedialog.askopenfilename(
-            title="Selecteer MetaTrader 5 executable",
-            filetypes=[("Executable", "*.exe")],
-            initialdir="C:\\Program Files",
-        )
-        if filename:
-            self.mt5_path_var.set(filename)
-
-    def save_configuration(self):
-        """Sla configuratie op."""
-        try:
-            # MT5 configuratie
-            mt5_config = {
-                "mt5_path": self.mt5_path_var.get(),
-                "login": (
-                    int(self.mt5_login_var.get()) if self.mt5_login_var.get() else 0
-                ),
-                "password": self.mt5_password_var.get(),
-                "server": self.mt5_server_var.get(),
-            }
-
-            # Risico configuratie
-            risk_config = {
-                "risk_per_trade": float(self.risk_per_trade_var.get()) / 100,
-                "max_daily_loss": float(self.max_daily_loss_var.get()) / 100,
-                "max_positions": int(self.max_positions_var.get()),
-                "max_correlated": int(self.max_correlated_var.get()),
-            }
-
-            # Symbolen
-            symbols = [
-                s.strip() for s in self.symbols_var.get().split(",") if
-                s.strip()
-            ]
-
-            # Volledige configuratie
-            config = {
-                "mt5": mt5_config,
-                "risk": risk_config,
-                "symbols": symbols,
-                "timeframe": self.timeframe_var.get(),
-                "interval": int(self.interval_var.get()),
-            }
-
-            # Sla op
-            self.save_config(config)
-            self.config = config
-            messagebox.showinfo("Configuratie",
-                                "Configuratie succesvol opgeslagen")
-
-        except Exception as e:
-            messagebox.showerror("Configuratie opslaan",
-                                 f"Fout bij opslaan: {e}")
-
-    def reset_configuration(self):
-        """Herstellen configuratie naar opgeslagen waarden."""
-        config = self.load_config()
-        self.config = config
-
-        # Update UI velden
-        # MT5
-        self.mt5_path_var.set(
-            config.get("mt5", {}).get(
-                "mt5_path", "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
-            )
-        )
-        self.mt5_login_var.set(str(config.get("mt5", {}).get("login", "")))
-        self.mt5_password_var.set(config.get("mt5", {}).get("password", ""))
-        self.mt5_server_var.set(config.get("mt5", {}).get("server", ""))
-
-        # Risico
-        self.risk_per_trade_var.set(
-            str(config.get("risk", {}).get("risk_per_trade", 0.01) * 100)
-        )
-        self.max_daily_loss_var.set(
-            str(config.get("risk", {}).get("max_daily_loss", 0.05) * 100)
-        )
-        self.max_positions_var.set(
-            str(config.get("risk", {}).get("max_positions", 5)))
-        self.max_correlated_var.set(
-            str(config.get("risk", {}).get("max_correlated", 2))
-        )
-
-        # Algemeen
-        self.symbols_var.set(
-            ", ".join(config.get("symbols", ["EURUSD", "USDJPY"])))
-        self.timeframe_var.set(config.get("timeframe", "H4"))
-        self.interval_var.set(str(config.get("interval", 300)))
-
-        self.show_status("Configuratie hersteld")
-
-    def toggle_connection(self):
-        """Toggle MT5 verbinding."""
-        # ToDo: Implementeer MT5 verbinding logica
-        if self.mt5_status_var.get() == "Niet verbonden":
-            self.mt5_status_var.set("Verbonden")
-            self.connect_button.configure(text="Verbreken")
-            self.account_balance_var.set("10,000.00 €")
-            self.account_equity_var.set("10,000.00 €")
-        else:
-            self.mt5_status_var.set("Niet verbonden")
-            self.connect_button.configure(text="Verbinden")
-            self.account_balance_var.set("- €")
-            self.account_equity_var.set("- €")
-
-    def start_trading(self):
-        """Start live trading."""
-        # ToDo: Implementeer live trading start logica
-        self.live_log.insert(
-            tk.END,
-            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} "
-            f"- Trading gestart met {self.live_strategy_var.get()} strategie\n",
-        )
-        self.live_log.see(tk.END)
-
-        self.start_button.configure(state=tk.DISABLED)
-        self.stop_button.configure(state=tk.NORMAL)
-
-    def stop_trading(self):
-        """Stop live trading."""
-        # ToDo: Implementeer live trading stop logica
-        self.live_log.insert(
-            tk.END,
-            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} " f"- Trading gestopt\n",
-        )
-        self.live_log.see(tk.END)
-
-        self.start_button.configure(state=tk.NORMAL)
-        self.stop_button.configure(state=tk.DISABLED)
-
-    def close_all_positions(self):
-        """Sluit alle open posities."""
-        # ToDo: Implementeer posities sluiten logica
-        confirm = messagebox.askyesno(
-            "Posities sluiten",
-            "Weet je zeker dat je alle open posities wilt sluiten?"
-        )
-        if confirm:
-            # Simulatie voor ui demo
-            self.positions_tree.delete(*self.positions_tree.get_children())
-
-            self.live_log.insert(
-                tk.END,
-                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} "
-                f"- Alle posities gesloten\n",
-            )
-            self.live_log.see(tk.END)
-
-    def run_backtest(self):
-        """Voer backtest uit met de ingestelde parameters."""
-        # Backtest parameters verzamelen
-        strategy = self.backtest_strategy_var.get()
-        symbols = [
-            s.strip() for s in self.backtest_symbols_var.get().split(",") if
-            s.strip()
-        ]
-        timeframe = self.backtest_timeframe_var.get()
-        period = self.backtest_period_var.get()
-        initial_cash = self.backtest_cash_var.get()
-
-        # Strategie specifieke parameters
-        if strategy == "turtle":
-            strategy_params = {
-                "entry_period": self.backtest_entry_period_var.get(),
-                "exit_period": self.backtest_exit_period_var.get(),
-                "atr_period": self.backtest_atr_period_var.get(),
-            }
-        else:  # EMA
-            strategy_params = {
-                "fast_ema": self.backtest_fast_ema_var.get(),
-                "slow_ema": self.backtest_slow_ema_var.get(),
-                "signal_ema": self.backtest_signal_ema_var.get(),
-            }
-
-        # Opties
-        plot = self.backtest_plot_var.get()
-
-        # Commando opbouwen
-        cmd = [
-            sys.executable,
-            "-m",
-            "src.analysis.backtest",
-            "--strategy",
-            strategy,
-            "--timeframe",
-            timeframe,
-            "--period",
-            period,
-            "--initial-cash",
-            initial_cash,
-            "--symbols",
-        ]
-
-        # Symbolen toevoegen
-        cmd.extend(symbols)
-
-        # Strategie parameters toevoegen
-        if strategy == "turtle":
-            cmd.extend(
-                [
-                    "--entry-period",
-                    strategy_params["entry_period"],
-                    "--exit-period",
-                    strategy_params["exit_period"],
-                    "--atr-period",
-                    strategy_params["atr_period"],
-                ]
-            )
-        else:  # EMA
-            cmd.extend(
-                [
-                    "--fast-ema",
-                    strategy_params["fast_ema"],
-                    "--slow-ema",
-                    strategy_params["slow_ema"],
-                    "--signal-ema",
-                    strategy_params["signal_ema"],
-                ]
-            )
-
-        # Plot optie
-        if plot:
-            cmd.append("--plot")
-
-        # Log commando
-        self.backtest_output.delete(1.0, tk.END)
-        self.backtest_output.insert(tk.END, f"Uitvoeren: {' '.join(cmd)}\n\n")
-        self.show_status("Backtest wordt uitgevoerd...")
-
-        # Uitvoeren in aparte thread
-        threading.Thread(
-            target=self._run_process, args=(cmd, self.backtest_output)
-        ).start()
-
-    def run_optimization(self):
-        """Voer optimalisatie uit met de ingestelde parameters."""
-        # Optimalisatie parameters verzamelen
-        strategy = self.optimize_strategy_var.get()
-        symbols = [
-            s.strip() for s in self.optimize_symbols_var.get().split(",") if
-            s.strip()
-        ]
-        timeframe = self.optimize_timeframe_var.get()
-        period = self.optimize_period_var.get()
-        metric = self.optimize_metric_var.get()
-        max_combinations = self.optimize_max_combinations_var.get()
-
-        # Parameter ranges
-        if strategy == "turtle":
-            param_ranges = {
-                "entry_period_range": self.optimize_entry_range_var.get(),
-                "exit_period_range": self.optimize_exit_range_var.get(),
-                "atr_period_range": self.optimize_atr_range_var.get(),
-            }
-        else:  # EMA
-            param_ranges = {
-                "fast_ema_range": self.optimize_fast_ema_range_var.get(),
-                "slow_ema_range": self.optimize_slow_ema_range_var.get(),
-                "signal_ema_range": self.optimize_signal_ema_range_var.get(),
-            }
-
-        # Commando opbouwen
-        cmd = [
-            sys.executable,
-            "-m",
-            "src.analysis.optimizer",
-            "--strategy",
-            strategy,
-            "--timeframe",
-            timeframe,
-            "--period",
-            period,
-            "--metric",
-            metric,
-            "--max-combinations",
-            max_combinations,
-            "--symbols",
-        ]
-
-        # Symbolen toevoegen
-        cmd.extend(symbols)
-
-        # Parameter ranges toevoegen
-        if strategy == "turtle":
-            cmd.extend(
-                [
-                    "--entry-period-range",
-                    param_ranges["entry_period_range"],
-                    "--exit-period-range",
-                    param_ranges["exit_period_range"],
-                    "--atr-period-range",
-                    param_ranges["atr_period_range"],
-                ]
-            )
-        else:  # EMA
-            cmd.extend(
-                [
-                    "--fast-ema-range",
-                    param_ranges["fast_ema_range"],
-                    "--slow-ema-range",
-                    param_ranges["slow_ema_range"],
-                    "--signal-ema-range",
-                    param_ranges["signal_ema_range"],
-                ]
-            )
-
-        # Log commando
-        self.optimize_output.delete(1.0, tk.END)
-        self.optimize_output.insert(tk.END, f"Uitvoeren: {' '.join(cmd)}\n\n")
-        self.show_status("Optimalisatie wordt uitgevoerd...")
-
-        # Uitvoeren in aparte thread
-        threading.Thread(
-            target=self._run_process, args=(cmd, self.optimize_output)
-        ).start()
-
-    def _run_process(self, cmd, output_widget):
-        """
-        Draai een proces en schrijf uitvoer naar widget.
-
-        Args:
-            cmd: Command lijst om uit te voeren
-            output_widget: Tk widget om uitvoer naar te schrijven
-        """
-        try:
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1,
-            )
-
-            # Lees uitvoer regel voor regel
-            for line in process.stdout:
-                self.root.after(
-                    0, lambda l=line: self._append_to_output(output_widget, l)
+        "fast_ema": 9,
+        "slow_ema": 21,
+        "signal_ema": 5,
+        "rsi_period": 14
+    }
+
+if 'optimize_params' not in st.session_state:
+    st.session_state.optimize_params = {
+        "strategy": "turtle",
+        "symbols": "EURUSD",
+        "timeframe": "H4",
+        "period": "1y",
+        "metric": "sharpe",
+        "max_combinations": 50,
+        # Turtle ranges
+        "entry_range": "10,20,30,40",
+        "exit_range": "5,10,15,20",
+        "atr_range": "10,14,20",
+        # EMA ranges
+        "fast_ema_range": "5,9,12,15",
+        "slow_ema_range": "20,25,30",
+        "signal_ema_range": "5,7,9"
+    }
+
+if 'live_params' not in st.session_state:
+    st.session_state.live_params = {
+        "connected": False,
+        "strategy": "turtle",
+        "symbols": "EURUSD,USDJPY",
+        "timeframe": "H4",
+        "risk": 1.0,
+        "interval": 300
+    }
+
+if 'data_params' not in st.session_state:
+    one_year_ago = (
+            datetime.datetime.now() - datetime.timedelta(days=365)).strftime(
+        '%Y-%m-%d')
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+
+    st.session_state.data_params = {
+        "symbol": "EURUSD",
+        "timeframe": "H4",
+        "from_date": one_year_ago,
+        "to_date": today,
+        "chart_type": "candle",
+        "show_ema": True,
+        "show_bb": False,
+        "show_volume": True,
+        "ema1": 9,
+        "ema2": 21
+    }
+
+if 'backtest_output' not in st.session_state:
+    st.session_state.backtest_output = []
+
+if 'optimize_output' not in st.session_state:
+    st.session_state.optimize_output = []
+
+if 'live_output' not in st.session_state:
+    st.session_state.live_output = []
+
+if 'backtest_running' not in st.session_state:
+    st.session_state.backtest_running = False
+
+if 'optimize_running' not in st.session_state:
+    st.session_state.optimize_running = False
+
+if 'positions' not in st.session_state:
+    st.session_state.positions = []
+
+if 'chart_data' not in st.session_state:
+    st.session_state.chart_data = None
+
+# Pad configuratie
+CONFIG_DIR = os.path.join(project_root, "config")
+BACKTEST_RESULTS_DIR = os.path.join(project_root, "backtest_results")
+OPTIMIZE_RESULTS_DIR = os.path.join(project_root, "optimization_results")
+PROFILE_DIR = os.path.join(project_root, "backtest_profiles")
+
+# Maak directories aan indien ze niet bestaan
+for directory in [CONFIG_DIR, BACKTEST_RESULTS_DIR, OPTIMIZE_RESULTS_DIR,
+                  PROFILE_DIR]:
+    os.makedirs(directory, exist_ok=True)
+
+
+# 3. API Compatibiliteit helper voor MT5 connector
+def fetch_mt5_data(symbol, timeframe, from_date, to_date):
+    """Haal data op van MT5 met verbeterde compatibiliteit."""
+    try:
+        from src.connector import MT5Connector
+
+        # Laad configuratie
+        config = load_config()
+        connector = MT5Connector(config.get("mt5", {}))
+
+        if connector.connect():
+            # Controleer de signature van get_historical_data
+            import inspect
+            params = inspect.signature(connector.get_historical_data).parameters
+
+            # Pas aanroep aan op basis van beschikbare parameters
+            if 'from_date' in params:
+                # Nieuwe API met from_date parameter
+                df = connector.get_historical_data(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    from_date=from_date,
+                    to_date=to_date
                 )
-
-            process.wait()
-
-            if process.returncode == 0:
-                self.root.after(
-                    0, lambda: self.show_status("Proces succesvol voltooid")
+            elif 'bars_count' in params:
+                # Oude API met bars_count parameter
+                df = connector.get_historical_data(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    bars_count=1000  # Redelijke default
                 )
             else:
-                self.root.after(
-                    0,
-                    lambda: self.show_status(
-                        f"Proces voltooid met foutcode {process.returncode}"
-                    ),
+                # Fallback optie
+                df = connector.get_historical_data(symbol, timeframe)
+
+            connector.disconnect()
+            return df
+
+        else:
+            st.error("Kon geen verbinding maken met MetaTrader 5")
+            return None
+
+    except Exception as e:
+        st.warning(f"MT5 data ophalen mislukt: {e}")
+        # Genereer demo data als fallback
+        return _generate_demo_data(symbol, from_date, to_date)
+
+
+def _generate_demo_data(symbol, from_date, to_date):
+    """Genereer demo data voor visualisatie wanneer MT5 niet beschikbaar is."""
+    start_date = pd.to_datetime(from_date)
+    end_date = pd.to_datetime(to_date)
+    date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+
+    # Genereer realistische data
+    np.random.seed(42)
+    n = len(date_range)
+    base = 1000 if symbol.startswith("USD") else 100
+
+    close = np.random.normal(0, 1, n).cumsum() + base
+    high = close + np.random.normal(0, 0.5, n)
+    low = close - np.random.normal(0, 0.5, n)
+    open_price = low + np.random.normal(0, (high - low) / 2, n)
+
+    df = pd.DataFrame({
+        'time': date_range,
+        'open': open_price,
+        'high': high,
+        'low': low,
+        'close': close,
+        'tick_volume': np.random.randint(100, 1000, n)
+    })
+
+    return df
+
+
+# Helper functies
+def load_config(config_path: str = None) -> dict:
+    """Laad configuratie uit JSON bestand."""
+    if config_path is None:
+        config_path = os.path.join(CONFIG_DIR, "settings.json")
+
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        st.error(f"Fout bij laden configuratie: {e}")
+        return {}
+
+
+def save_config(config: dict, config_path: str = None) -> bool:
+    """Sla configuratie op naar JSON bestand."""
+    if config_path is None:
+        config_path = os.path.join(CONFIG_DIR, "settings.json")
+
+    try:
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2)
+        return True
+    except Exception as e:
+        st.error(f"Fout bij opslaan configuratie: {e}")
+        return False
+
+
+def load_backtest_results():
+    """Laad bestaande backtest resultaten uit de resultaten directory."""
+    results = []
+    if os.path.exists(BACKTEST_RESULTS_DIR):
+        for filename in os.listdir(BACKTEST_RESULTS_DIR):
+            if filename.endswith(".json"):
+                try:
+                    filepath = os.path.join(BACKTEST_RESULTS_DIR, filename)
+                    with open(filepath, 'r') as f:
+                        data = json.load(f)
+
+                    # Extract relevante informatie
+                    date_str = filename.split("_")[-1].replace(".json", "")
+                    try:
+                        date = datetime.datetime.strptime(date_str,
+                                                          "%Y%m%d_%H%M%S").strftime(
+                            "%Y-%m-%d")
+                    except:
+                        date = "Onbekend"
+
+                    if "parameters" in data:
+                        params = data["parameters"]
+                        metrics = data["metrics"] if "metrics" in data else {}
+
+                        results.append({
+                            "date": date,
+                            "type": "backtest",
+                            "strategy": params.get("strategy", "unknown"),
+                            "symbol": ", ".join(
+                                params.get("symbols", ["unknown"])),
+                            "timeframe": params.get("timeframe", "unknown"),
+                            "return": metrics.get("total_return_pct", 0),
+                            "sharpe": metrics.get("sharpe_ratio", 0),
+                            "filepath": filepath
+                        })
+                except Exception as e:
+                    print(f"Fout bij laden van {filename}: {e}")
+
+    return sorted(results, key=lambda x: x["date"], reverse=True)
+
+
+def load_optimization_results():
+    """Laad bestaande optimalisatie resultaten uit de resultaten directory."""
+    results = []
+    if os.path.exists(OPTIMIZE_RESULTS_DIR):
+        for filename in os.listdir(OPTIMIZE_RESULTS_DIR):
+            if filename.endswith(".json"):
+                try:
+                    filepath = os.path.join(OPTIMIZE_RESULTS_DIR, filename)
+                    with open(filepath, 'r') as f:
+                        data = json.load(f)
+
+                    # Extract relevante informatie
+                    date_str = filename.split("_")[-1].replace(".json", "")
+                    try:
+                        date = datetime.datetime.strptime(date_str,
+                                                          "%Y%m%d_%H%M%S").strftime(
+                            "%Y-%m-%d")
+                    except:
+                        date = "Onbekend"
+
+                    if "strategy" in data and "results" in data and len(
+                        data["results"]) > 0:
+                        best_result = data["results"][0]
+
+                        results.append({
+                            "date": date,
+                            "type": "optimize",
+                            "strategy": data.get("strategy", "unknown"),
+                            "symbol": ", ".join(
+                                data.get("symbols", ["unknown"])),
+                            "timeframe": data.get("timeframe", "unknown"),
+                            "return": best_result["metrics"].get(
+                                "total_return_pct",
+                                0) if "metrics" in best_result else 0,
+                            "sharpe": best_result["metrics"].get("sharpe_ratio",
+                                                                 0) if "metrics" in best_result else 0,
+                            "filepath": filepath
+                        })
+                except Exception as e:
+                    print(f"Fout bij laden van {filename}: {e}")
+
+    return sorted(results, key=lambda x: x["date"], reverse=True)
+
+
+def load_saved_profiles():
+    """Laad opgeslagen backtest profielen met verbeterde foutafhandeling."""
+    profiles = []
+
+    try:
+        if os.path.exists(PROFILE_DIR):
+            for filename in os.listdir(PROFILE_DIR):
+                if filename.endswith(".json"):
+                    try:
+                        filepath = os.path.join(PROFILE_DIR, filename)
+                        with open(filepath, 'r') as f:
+                            data = json.load(f)
+
+                        # Veilige extractie van gegevens met diepere error handling
+                        profile_name = filename.replace(".json", "")
+
+                        # Compatibiliteit met verschillende profielformaten
+                        if isinstance(data, dict):
+                            strategy_type = data.get("strategy", {})
+                            if isinstance(strategy_type, dict):
+                                strategy_type = strategy_type.get("type",
+                                                                  "unknown")
+                            elif isinstance(strategy_type, str):
+                                pass  # Strategy is al een string
+                            else:
+                                strategy_type = "unknown"
+
+                            symbols = data.get("symbols", ["unknown"])
+                            if isinstance(symbols, list):
+                                symbols = ", ".join(symbols)
+                            elif isinstance(symbols, str):
+                                symbols = symbols
+                            else:
+                                symbols = "unknown"
+
+                            timeframe = data.get("timeframe", "unknown")
+                        else:
+                            strategy_type = "unknown"
+                            symbols = "unknown"
+                            timeframe = "unknown"
+
+                        profiles.append({
+                            "name": profile_name,
+                            "strategy": strategy_type,
+                            "symbols": symbols,
+                            "timeframe": timeframe,
+                            "filepath": filepath
+                        })
+                    except Exception as e:
+                        print(f"Fout bij laden van profiel {filename}: {e}")
+        else:
+            st.warning(f"Profielmap niet gevonden: {PROFILE_DIR}")
+    except Exception as e:
+        st.error(f"Algemene fout bij laden profielen: {e}")
+
+    return profiles
+
+
+def save_profile(name, parameters):
+    """Sla parameters op als profiel."""
+    filepath = os.path.join(PROFILE_DIR, f"{name}.json")
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w') as f:
+        json.dump(parameters, f, indent=2)
+    return filepath
+
+
+def run_backtest_command(params, output_callback=None):
+    """Voer een backtest uit met de gegeven parameters."""
+    command = ["python", "-m", "src.analysis.backtest"]
+
+    # Voeg parameters toe
+    command.extend(["--strategy", params["strategy"]])
+    command.extend(
+        ["--symbols"] + params["symbols"].replace(" ", "").split(","))
+    command.extend(["--timeframe", params["timeframe"]])
+    command.extend(["--period", params["period"]])
+    command.extend(["--initial-cash", str(params["initial_cash"])])
+
+    # Strategie-specifieke parameters
+    if params["strategy"] == "turtle":
+        command.extend(["--entry-period", str(params["entry_period"])])
+        command.extend(["--exit-period", str(params["exit_period"])])
+        command.extend(["--atr-period", str(params["atr_period"])])
+        if params.get("vol_filter", False):
+            command.append("--use-vol-filter")
+    else:  # ema
+        command.extend(["--fast-ema", str(params["fast_ema"])])
+        command.extend(["--slow-ema", str(params["slow_ema"])])
+        command.extend(["--signal-ema", str(params["signal_ema"])])
+        command.extend(["--rsi-period", str(params["rsi_period"])])
+
+    if params.get("plot", False):
+        command.append("--plot")
+
+    # Start process
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True
+    )
+
+    # Lees output
+    output = []
+    for line in process.stdout:
+        line = line.strip()
+        output.append(line)
+        if output_callback:
+            output_callback(line)
+
+    process.wait()
+    return process.returncode, output
+
+
+def run_optimization_command(params, output_callback=None):
+    """Voer een optimalisatie uit met de gegeven parameters."""
+    command = ["python", "-m", "src.analysis.optimizer"]
+
+    # Voeg parameters toe
+    command.extend(["--strategy", params["strategy"]])
+    command.extend(
+        ["--symbols"] + params["symbols"].replace(" ", "").split(","))
+    command.extend(["--timeframe", params["timeframe"]])
+    command.extend(["--period", params["period"]])
+    command.extend(["--metric", params["metric"]])
+    command.extend(["--max-combinations", str(params["max_combinations"])])
+
+    # Strategie-specifieke parameters
+    if params["strategy"] == "turtle":
+        command.extend(["--entry-period-range", params["entry_range"]])
+        command.extend(["--exit-period-range", params["exit_range"]])
+        command.extend(["--atr-period-range", params["atr_range"]])
+    else:  # ema
+        command.extend(["--fast-ema-range", params["fast_ema_range"]])
+        command.extend(["--slow-ema-range", params["slow_ema_range"]])
+        command.extend(["--signal-ema-range", params["signal_ema_range"]])
+
+    # Start process
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True
+    )
+
+    # Lees output
+    output = []
+    for line in process.stdout:
+        line = line.strip()
+        output.append(line)
+        if output_callback:
+            output_callback(line)
+
+    process.wait()
+    return process.returncode, output
+
+
+def create_candlestick_chart(df, title="Price Chart", volume=True,
+                             indicators=None):
+    """Creëer een candlestick chart met Plotly."""
+    if df is None or len(df) == 0:
+        return go.Figure().update_layout(title="Geen data beschikbaar")
+
+    # Maak subplots: een voor prijs, een voor volume (indien geactiveerd)
+    fig = make_subplots(
+        rows=2 if volume else 1,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        subplot_titles=("Price", "Volume") if volume else ("Price",),
+        row_heights=[0.8, 0.2] if volume else [1]
+    )
+
+    # Voeg candlestick chart toe
+    fig.add_trace(
+        go.Candlestick(
+            x=df['time'],
+            open=df['open'],
+            high=df['high'],
+            low=df['low'],
+            close=df['close'],
+            name="Price"
+        ),
+        row=1, col=1
+    )
+
+    # Voeg volume toe indien gewenst
+    if volume and 'tick_volume' in df.columns:
+        fig.add_trace(
+            go.Bar(
+                x=df['time'],
+                y=df['tick_volume'],
+                name="Volume",
+                marker_color='rgba(0, 0, 255, 0.5)'
+            ),
+            row=2, col=1
+        )
+
+    # Voeg indicators toe indien opgegeven
+    if indicators:
+        if 'ema1' in indicators and indicators['ema1'] > 0:
+            ema1 = df['close'].ewm(span=indicators['ema1']).mean()
+            fig.add_trace(
+                go.Scatter(
+                    x=df['time'],
+                    y=ema1,
+                    mode='lines',
+                    name=f"EMA {indicators['ema1']}",
+                    line=dict(color='rgba(255, 165, 0, 0.8)')
+                ),
+                row=1, col=1
+            )
+
+        if 'ema2' in indicators and indicators['ema2'] > 0:
+            ema2 = df['close'].ewm(span=indicators['ema2']).mean()
+            fig.add_trace(
+                go.Scatter(
+                    x=df['time'],
+                    y=ema2,
+                    mode='lines',
+                    name=f"EMA {indicators['ema2']}",
+                    line=dict(color='rgba(0, 0, 255, 0.8)')
+                ),
+                row=1, col=1
+            )
+
+        if 'bb' in indicators and indicators['bb']:
+            # Bereken Bollinger Bands (20, 2)
+            ma20 = df['close'].rolling(window=20).mean()
+            std20 = df['close'].rolling(window=20).std()
+            upper_band = ma20 + 2 * std20
+            lower_band = ma20 - 2 * std20
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df['time'],
+                    y=upper_band,
+                    mode='lines',
+                    name='Upper BB',
+                    line=dict(color='rgba(173, 216, 230, 0.8)')
+                ),
+                row=1, col=1
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df['time'],
+                    y=ma20,
+                    mode='lines',
+                    name='Middle BB',
+                    line=dict(color='rgba(173, 216, 230, 0.8)')
+                ),
+                row=1, col=1
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df['time'],
+                    y=lower_band,
+                    mode='lines',
+                    name='Lower BB',
+                    line=dict(color='rgba(173, 216, 230, 0.8)')
+                ),
+                row=1, col=1
+            )
+
+    # Update layout
+    fig.update_layout(
+        title=title,
+        xaxis_title="Date",
+        yaxis_title="Price",
+        height=600,
+        xaxis_rangeslider_visible=False
+    )
+
+    fig.update_yaxes(title_text="Volume", row=2, col=1)
+
+    return fig
+
+
+# App hoofdstructuur
+def main():
+    # Navigatie
+    st.sidebar.title("Sophia Trading Framework")
+
+    # Diagnostiek weergave indien nodig
+    if not SOPHIA_IMPORTS_SUCCESS:
+        st.sidebar.warning("⚠️ Niet alle modules zijn geladen")
+        with st.sidebar.expander("Import details", expanded=False):
+            st.error(
+                f"Import fout: {import_error if 'import_error' in locals() else 'Onbekende fout'}")
+            st.info("Het dashboard werkt in beperkte modus.")
+    else:
+        st.sidebar.success("✅ Alle modules geladen")
+
+    # Tabs
+    tab_options = ["Backtest", "Optimalisatie", "Live Trading", "Data & Charts"]
+    selected_tab = st.sidebar.radio("Navigatie", tab_options)
+
+    # Tab inhoud
+    if selected_tab == "Backtest":
+        show_backtest_tab()
+    elif selected_tab == "Optimalisatie":
+        show_optimize_tab()
+    elif selected_tab == "Live Trading":
+        show_live_trading_tab()
+    elif selected_tab == "Data & Charts":
+        show_data_charts_tab()
+
+
+def show_backtest_tab():
+    st.title("📊 Backtest")
+
+    # Layout met twee kolommen
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        # Parameters sectie
+        st.subheader("Backtest Parameters")
+
+        # Basis parameters
+        st.session_state.backtest_params["strategy"] = st.selectbox(
+            "Strategie",
+            ["turtle", "ema"],
+            index=0 if st.session_state.backtest_params[
+                           "strategy"] == "turtle" else 1,
+            key="bt_strategy"
+        )
+
+        st.session_state.backtest_params["symbols"] = st.text_input(
+            "Symbolen (komma-gescheiden)",
+            value=st.session_state.backtest_params["symbols"],
+            key="bt_symbols"
+        )
+
+        st.session_state.backtest_params["timeframe"] = st.selectbox(
+            "Timeframe",
+            ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+            index=["M1", "M5", "M15", "M30", "H1", "H4", "D1"].index(
+                st.session_state.backtest_params["timeframe"]),
+            key="bt_timeframe"
+        )
+
+        st.session_state.backtest_params["period"] = st.selectbox(
+            "Periode",
+            ["1m", "3m", "6m", "1y", "2y", "5y"],
+            index=["1m", "3m", "6m", "1y", "2y", "5y"].index(
+                st.session_state.backtest_params["period"]),
+            key="bt_period"
+        )
+
+        st.session_state.backtest_params["initial_cash"] = st.number_input(
+            "Initieel Kapitaal",
+            min_value=1.0,
+            value=float(st.session_state.backtest_params["initial_cash"]),
+            key="bt_initial_cash"
+        )
+
+        st.session_state.backtest_params["plot"] = st.checkbox(
+            "Genereer grafieken",
+            value=st.session_state.backtest_params["plot"],
+            key="bt_plot"
+        )
+
+        # Strategie-specifieke parameters
+        st.subheader(
+            f"{'Turtle' if st.session_state.backtest_params['strategy'] == 'turtle' else 'EMA'} Strategie Parameters")
+
+        if st.session_state.backtest_params["strategy"] == "turtle":
+            st.session_state.backtest_params["entry_period"] = st.number_input(
+                "Entry Period",
+                min_value=1,
+                value=int(st.session_state.backtest_params["entry_period"]),
+                key="bt_entry_period"
+            )
+
+            st.session_state.backtest_params["exit_period"] = st.number_input(
+                "Exit Period",
+                min_value=1,
+                value=int(st.session_state.backtest_params["exit_period"]),
+                key="bt_exit_period"
+            )
+
+            st.session_state.backtest_params["atr_period"] = st.number_input(
+                "ATR Period",
+                min_value=1,
+                value=int(st.session_state.backtest_params["atr_period"]),
+                key="bt_atr_period"
+            )
+
+            st.session_state.backtest_params["vol_filter"] = st.checkbox(
+                "Gebruik volatiliteitsfilter",
+                value=st.session_state.backtest_params["vol_filter"],
+                key="bt_vol_filter"
+            )
+        else:  # EMA strategie
+            st.session_state.backtest_params["fast_ema"] = st.number_input(
+                "Fast EMA",
+                min_value=1,
+                value=int(st.session_state.backtest_params["fast_ema"]),
+                key="bt_fast_ema"
+            )
+
+            st.session_state.backtest_params["slow_ema"] = st.number_input(
+                "Slow EMA",
+                min_value=1,
+                value=int(st.session_state.backtest_params["slow_ema"]),
+                key="bt_slow_ema"
+            )
+
+            st.session_state.backtest_params["signal_ema"] = st.number_input(
+                "Signal EMA",
+                min_value=1,
+                value=int(st.session_state.backtest_params["signal_ema"]),
+                key="bt_signal_ema"
+            )
+
+            st.session_state.backtest_params["rsi_period"] = st.number_input(
+                "RSI Period",
+                min_value=1,
+                value=int(st.session_state.backtest_params["rsi_period"]),
+                key="bt_rsi_period"
+            )
+
+        # Profiel opslaan sectie
+        st.subheader("Profiel Opslaan")
+        profile_name = st.text_input("Profielnaam", key="bt_profile_name")
+        save_button = st.button("Profiel Opslaan")
+
+        if save_button and profile_name:
+            try:
+                filepath = save_profile(profile_name,
+                                        st.session_state.backtest_params)
+                st.success(f"Profiel opgeslagen als: {profile_name}")
+            except Exception as e:
+                st.error(f"Fout bij opslaan profiel: {e}")
+
+        # Run Backtest knop
+        run_button = st.button(
+            "Start Backtest",
+            disabled=st.session_state.backtest_running,
+            use_container_width=True,
+            type="primary"
+        )
+
+        if run_button:
+            st.session_state.backtest_running = True
+            st.session_state.backtest_output = []
+
+            # Start een aparte thread voor de backtest
+            import threading
+
+            def update_output(line):
+                st.session_state.backtest_output.append(line)
+
+            def run_backtest_thread():
+                try:
+                    _, output = run_backtest_command(
+                        st.session_state.backtest_params, update_output)
+                    st.session_state.backtest_running = False
+                except Exception as e:
+                    st.session_state.backtest_output.append(f"Error: {e}")
+                    st.session_state.backtest_running = False
+
+            thread = threading.Thread(target=run_backtest_thread)
+            thread.start()
+
+    with col2:
+        # Backtest output en resultaten
+        output_tab, profiles_tab, results_tab = st.tabs(
+            ["Backtest Output", "Opgeslagen Profielen", "Backtest Resultaten"])
+
+        with output_tab:
+            # Console output
+            st.subheader("Backtest Console Output")
+
+            if st.session_state.backtest_running:
+                st.info("Backtest loopt... even geduld")
+                progress_bar = st.progress(0)
+
+                # Toon de output
+                output_container = st.container()
+                with output_container:
+                    for i, line in enumerate(st.session_state.backtest_output):
+                        st.text(line)
+                        # Update progress bar (eenvoudige simulatie)
+                        if i % 3 == 0:
+                            progress = min(i / 20, 1.0)
+                            progress_bar.progress(progress)
+            else:
+                # Toon de output
+                for line in st.session_state.backtest_output:
+                    st.text(line)
+
+                # Clear output knop
+                if st.button("Wis Console Output", key="clear_bt_output"):
+                    st.session_state.backtest_output = []
+                    st.experimental_rerun()
+
+        with profiles_tab:
+            st.subheader("Opgeslagen Profielen")
+
+            # Laad profielen
+            profiles = load_saved_profiles()
+
+            if not profiles:
+                st.info("Geen opgeslagen profielen gevonden")
+            else:
+                # Maak een DataFrame voor weergave
+                profile_df = pd.DataFrame(profiles)
+                profile_df = profile_df[
+                    ["name", "strategy", "symbols", "timeframe"]]
+
+                # Toon tabel
+                st.dataframe(profile_df, use_container_width=True)
+
+                # Selecteer een profiel om te laden
+                selected_profile = st.selectbox(
+                    "Selecteer een profiel om te laden",
+                    [p["name"] for p in profiles],
+                    key="bt_selected_profile"
                 )
 
-        except Exception as e:
-            self.root.after(
-                0,
-                lambda: self._append_to_output(
-                    output_widget, f"\nFout bij uitvoeren: {e}\n"
-                ),
+                if st.button("Laad Profiel", key="load_profile_btn"):
+                    # Zoek het geselecteerde profiel
+                    for profile in profiles:
+                        if profile["name"] == selected_profile:
+                            # Laad profiel
+                            try:
+                                with open(profile["filepath"], 'r') as f:
+                                    loaded_profile = json.load(f)
+
+                                # Update session state
+                                # Haal basis parameters op
+                                st.session_state.backtest_params[
+                                    "strategy"] = loaded_profile.get("strategy",
+                                                                     {}).get(
+                                    "type", "turtle")
+                                st.session_state.backtest_params[
+                                    "symbols"] = ",".join(
+                                    loaded_profile.get("symbols", ["EURUSD"]))
+                                st.session_state.backtest_params[
+                                    "timeframe"] = loaded_profile.get(
+                                    "timeframe", "H4")
+
+                                # Strategie parameters
+                                strategy_params = loaded_profile.get("strategy",
+                                                                     {})
+                                if st.session_state.backtest_params[
+                                    "strategy"] == "turtle":
+                                    st.session_state.backtest_params[
+                                        "entry_period"] = strategy_params.get(
+                                        "entry_period", 20)
+                                    st.session_state.backtest_params[
+                                        "exit_period"] = strategy_params.get(
+                                        "exit_period", 10)
+                                    st.session_state.backtest_params[
+                                        "atr_period"] = strategy_params.get(
+                                        "atr_period", 14)
+                                    st.session_state.backtest_params[
+                                        "vol_filter"] = strategy_params.get(
+                                        "vol_filter", True)
+                                else:  # ema
+                                    st.session_state.backtest_params[
+                                        "fast_ema"] = strategy_params.get(
+                                        "fast_ema", 9)
+                                    st.session_state.backtest_params[
+                                        "slow_ema"] = strategy_params.get(
+                                        "slow_ema", 21)
+                                    st.session_state.backtest_params[
+                                        "signal_ema"] = strategy_params.get(
+                                        "signal_ema", 5)
+
+                                st.success(
+                                    f"Profiel '{selected_profile}' geladen")
+                                st.experimental_rerun()
+                            except Exception as e:
+                                st.error(f"Fout bij laden profiel: {e}")
+
+        with results_tab:
+            st.subheader("Backtest Resultaten")
+
+            # Laad resultaten
+            backtest_results = load_backtest_results()
+
+            if not backtest_results:
+                st.info("Geen backtest resultaten gevonden")
+            else:
+                # Maak een DataFrame voor weergave
+                results_df = pd.DataFrame(backtest_results)
+                results_df = results_df[
+                    ["date", "strategy", "symbol", "timeframe", "return",
+                     "sharpe"]]
+                results_df["return"] = results_df["return"].apply(
+                    lambda x: f"{x:.2f}%")
+                results_df["sharpe"] = results_df["sharpe"].apply(
+                    lambda x: f"{x:.2f}")
+                results_df.columns = ["Datum", "Strategie", "Symbool",
+                                      "Timeframe", "Return", "Sharpe"]
+
+                # Toon tabel
+                st.dataframe(results_df, use_container_width=True)
+
+                # Selecteer een resultaat om details te bekijken
+                selected_result_idx = st.selectbox(
+                    "Selecteer een resultaat om details te bekijken",
+                    range(len(backtest_results)),
+                    format_func=lambda
+                        i: f"{backtest_results[i]['date']} - {backtest_results[i]['strategy']} {backtest_results[i]['symbol']} {backtest_results[i]['timeframe']}",
+                    key="bt_selected_result"
+                )
+
+                # Toon details
+                st.subheader("Resultaat Details")
+                result = backtest_results[selected_result_idx]
+
+                # Maak een mooie weergave van het resultaat
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Return", f"{result['return']:.2f}%")
+                with col2:
+                    st.metric("Sharpe Ratio", f"{result['sharpe']:.2f}")
+                with col3:
+                    st.metric("Strategie", result['strategy'].upper())
+
+                # Probeer om de bestandspaden van de resultaatafbeeldingen te vinden
+                result_base = os.path.basename(result['filepath']).replace(
+                    ".json", "")
+
+                # Controleer of er een afbeelding is
+                image_path = os.path.join(BACKTEST_RESULTS_DIR,
+                                          f"{result_base}.png")
+                if os.path.exists(image_path):
+                    st.image(image_path,
+                             caption=f"{result['strategy'].upper()} backtest resultaat",
+                             use_column_width=True)
+                else:
+                    st.warning("Geen afbeelding gevonden voor dit resultaat")
+
+
+def show_optimize_tab():
+    st.title("⚙️ Optimalisatie")
+
+    # Layout met twee kolommen
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        # Parameters sectie
+        st.subheader("Optimalisatie Parameters")
+
+        # Basis parameters
+        st.session_state.optimize_params["strategy"] = st.selectbox(
+            "Strategie",
+            ["turtle", "ema"],
+            index=0 if st.session_state.optimize_params[
+                           "strategy"] == "turtle" else 1,
+            key="opt_strategy"
+        )
+
+        st.session_state.optimize_params["symbols"] = st.text_input(
+            "Symbool",
+            value=st.session_state.optimize_params["symbols"],
+            key="opt_symbols"
+        )
+
+        st.session_state.optimize_params["timeframe"] = st.selectbox(
+            "Timeframe",
+            ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+            index=["M1", "M5", "M15", "M30", "H1", "H4", "D1"].index(
+                st.session_state.optimize_params["timeframe"]),
+            key="opt_timeframe"
+        )
+
+        st.session_state.optimize_params["period"] = st.selectbox(
+            "Periode",
+            ["1m", "3m", "6m", "1y", "2y", "5y"],
+            index=["1m", "3m", "6m", "1y", "2y", "5y"].index(
+                st.session_state.optimize_params["period"]),
+            key="opt_period"
+        )
+
+        st.session_state.optimize_params["metric"] = st.selectbox(
+            "Optimalisatie Metric",
+            ["sharpe", "return", "drawdown", "profit_factor"],
+            index=["sharpe", "return", "drawdown", "profit_factor"].index(
+                st.session_state.optimize_params["metric"]),
+            key="opt_metric"
+        )
+
+        st.session_state.optimize_params["max_combinations"] = st.number_input(
+            "Maximum Combinaties",
+            min_value=1,
+            value=int(st.session_state.optimize_params["max_combinations"]),
+            key="opt_max_combinations"
+        )
+
+        # Strategie-specifieke parameters
+        st.subheader(
+            f"{'Turtle' if st.session_state.optimize_params['strategy'] == 'turtle' else 'EMA'} Parameter Ranges")
+
+        if st.session_state.optimize_params["strategy"] == "turtle":
+            st.session_state.optimize_params["entry_range"] = st.text_input(
+                "Entry Period Range (komma-gescheiden)",
+                value=st.session_state.optimize_params["entry_range"],
+                key="opt_entry_range"
             )
-            self.root.after(0, lambda: self.show_status(
-                "Fout bij uitvoeren proces"))
 
-    def _append_to_output(self, widget, text):
-        """
-        Voeg tekst toe aan output widget.
+            st.session_state.optimize_params["exit_range"] = st.text_input(
+                "Exit Period Range (komma-gescheiden)",
+                value=st.session_state.optimize_params["exit_range"],
+                key="opt_exit_range"
+            )
 
-        Args:
-            widget: Tk widget om tekst aan toe te voegen
-            text: Toe te voegen tekst
-        """
-        widget.insert(tk.END, text)
-        widget.see(tk.END)
+            st.session_state.optimize_params["atr_range"] = st.text_input(
+                "ATR Period Range (komma-gescheiden)",
+                value=st.session_state.optimize_params["atr_range"],
+                key="opt_atr_range"
+            )
+        else:  # EMA strategie
+            st.session_state.optimize_params["fast_ema_range"] = st.text_input(
+                "Fast EMA Range (komma-gescheiden)",
+                value=st.session_state.optimize_params["fast_ema_range"],
+                key="opt_fast_ema_range"
+            )
 
-    def open_folder(self, folder_name):
-        """
-        Open een map in de explorer.
+            st.session_state.optimize_params["slow_ema_range"] = st.text_input(
+                "Slow EMA Range (komma-gescheiden)",
+                value=st.session_state.optimize_params["slow_ema_range"],
+                key="opt_slow_ema_range"
+            )
 
-        Args:
-            folder_name: Naam van de map onder project root
-        """
-        folder_path = os.path.join(project_root, folder_name)
+            st.session_state.optimize_params[
+                "signal_ema_range"] = st.text_input(
+                "Signal EMA Range (komma-gescheiden)",
+                value=st.session_state.optimize_params["signal_ema_range"],
+                key="opt_signal_ema_range"
+            )
 
-        # Controleer of map bestaat, maak aan indien nodig
-        if not os.path.exists(folder_path):
-            try:
-                os.makedirs(folder_path)
-            except Exception as e:
-                messagebox.showerror("Map openen",
-                                     f"Kon map niet aanmaken: {e}")
-                return
+        # Run Optimize knop
+        run_button = st.button(
+            "Start Optimalisatie",
+            disabled=st.session_state.optimize_running,
+            use_container_width=True,
+            type="primary"
+        )
 
-        # Open map
-        try:
-            if sys.platform == "win32":
-                os.startfile(folder_path)
-            elif sys.platform == "darwin":  # macOS
-                subprocess.call(["open", folder_path])
-            else:  # Linux
-                subprocess.call(["xdg-open", folder_path])
-        except Exception as e:
-            messagebox.showerror("Map openen", f"Kon map niet openen: {e}")
+        if run_button:
+            st.session_state.optimize_running = True
+            st.session_state.optimize_output = []
 
-    def show_status(self, message):
-        """
-        Toon een bericht in de statusbalk.
+            # Start een aparte thread voor de optimalisatie
+            import threading
 
-        Args:
-            message: Bericht om te tonen
-        """
-        self.status_var.set(message)
-        # Reset na 5 seconden
-        self.root.after(5000, lambda: self.status_var.set("Gereed"))
+            def update_output(line):
+                st.session_state.optimize_output.append(line)
+
+            def run_optimize_thread():
+                try:
+                    _, output = run_optimization_command(
+                        st.session_state.optimize_params, update_output)
+                    st.session_state.optimize_running = False
+                except Exception as e:
+                    st.session_state.optimize_output.append(f"Error: {e}")
+                    st.session_state.optimize_running = False
+
+            thread = threading.Thread(target=run_optimize_thread)
+            thread.start()
+
+    with col2:
+        # Optimalisatie output en resultaten
+        output_tab, best_tab, history_tab = st.tabs(
+            ["Optimalisatie Output", "Beste Parameters",
+             "Optimalisatie Geschiedenis"])
+
+        with output_tab:
+            # Console output
+            st.subheader("Optimalisatie Console Output")
+
+            if st.session_state.optimize_running:
+                st.info("Optimalisatie loopt... even geduld")
+                progress_bar = st.progress(0)
+
+                # Toon de output
+                output_container = st.container()
+                with output_container:
+                    for i, line in enumerate(st.session_state.optimize_output):
+                        st.text(line)
+                        # Update progress bar (eenvoudige simulatie)
+                        if i % 3 == 0:
+                            progress = min(i / 20, 1.0)
+                            progress_bar.progress(progress)
+            else:
+                # Toon de output
+                for line in st.session_state.optimize_output:
+                    st.text(line)
+
+                # Clear output knop
+                if st.button("Wis Console Output", key="clear_opt_output"):
+                    st.session_state.optimize_output = []
+                    st.experimental_rerun()
+
+        with best_tab:
+            st.subheader("Beste Parameters")
+
+            # Controleer of er optimalisatie resultaten zijn
+            best_params = None
+
+            # Zoek naar "BEST PARAMETERS FOUND:" in output
+            found_best = False
+            params_dict = {}
+            for line in st.session_state.optimize_output:
+                if found_best and line.strip():
+                    # Parse parameters regels van het format "  key: value"
+                    if line.strip().startswith("  "):
+                        parts = line.strip()[2:].split(":", 1)
+                        if len(parts) == 2:
+                            key = parts[0].strip()
+                            value = parts[1].strip()
+                            # Convert waarden naar juiste types
+                            if value.lower() == "true":
+                                value = True
+                            elif value.lower() == "false":
+                                value = False
+                            elif value.replace(".", "", 1).isdigit():
+                                value = float(value) if "." in value else int(
+                                    value)
+                            params_dict[key] = value
+
+                if "BEST PARAMETERS FOUND:" in line:
+                    found_best = True
+
+            if params_dict:
+                best_params = params_dict
+
+                # Toon de beste parameters
+                st.success("Optimale parameters gevonden!")
+
+                # Maak een mooie weergave
+                col1, col2 = st.columns(2)
+                for i, (key, value) in enumerate(best_params.items()):
+                    with col1 if i % 2 == 0 else col2:
+                        st.metric(key, value)
+
+                # Knop om parameters toe te passen op backtest
+                if st.button("Parameters toepassen op backtest",
+                             key="apply_best_params"):
+                    # Strategy type vaststellen
+                    strategy_type = st.session_state.optimize_params["strategy"]
+
+                    # Update backtest parameters
+                    st.session_state.backtest_params["strategy"] = strategy_type
+
+                    # Turtle parameters
+                    if strategy_type == "turtle":
+                        if "entry_period" in best_params:
+                            st.session_state.backtest_params["entry_period"] = \
+                            best_params["entry_period"]
+                        if "exit_period" in best_params:
+                            st.session_state.backtest_params["exit_period"] = \
+                            best_params["exit_period"]
+                        if "atr_period" in best_params:
+                            st.session_state.backtest_params["atr_period"] = \
+                            best_params["atr_period"]
+                        if "use_vol_filter" in best_params:
+                            st.session_state.backtest_params["vol_filter"] = \
+                            best_params["use_vol_filter"]
+
+                    # EMA parameters
+                    else:
+                        if "fast_ema" in best_params:
+                            st.session_state.backtest_params["fast_ema"] = \
+                            best_params["fast_ema"]
+                        if "slow_ema" in best_params:
+                            st.session_state.backtest_params["slow_ema"] = \
+                            best_params["slow_ema"]
+                        if "signal_ema" in best_params:
+                            st.session_state.backtest_params["signal_ema"] = \
+                            best_params["signal_ema"]
+
+                    st.success(
+                        "Parameters toegepast! Ga naar de Backtest tab om een test uit te voeren.")
+            else:
+                st.info(
+                    "Run een optimalisatie om de beste parameters te vinden")
+
+        with history_tab:
+            st.subheader("Optimalisatie Geschiedenis")
+
+            # Laad optimalisatie resultaten
+            optimize_results = load_optimization_results()
+
+            if not optimize_results:
+                st.info("Geen optimalisatie resultaten gevonden")
+            else:
+                # Maak een DataFrame voor weergave
+                results_df = pd.DataFrame(optimize_results)
+                results_df = results_df[
+                    ["date", "strategy", "symbol", "timeframe", "return",
+                     "sharpe"]]
+                results_df["return"] = results_df["return"].apply(
+                    lambda x: f"{x:.2f}%")
+                results_df["sharpe"] = results_df["sharpe"].apply(
+                    lambda x: f"{x:.2f}")
+                results_df.columns = ["Datum", "Strategie", "Symbool",
+                                      "Timeframe", "Return", "Sharpe"]
+
+                # Toon tabel
+                st.dataframe(results_df, use_container_width=True)
+
+                # Selecteer een resultaat om details te bekijken
+                if len(optimize_results) > 0:
+                    selected_result_idx = st.selectbox(
+                        "Selecteer een resultaat om details te bekijken",
+                        range(len(optimize_results)),
+                        format_func=lambda
+                            i: f"{optimize_results[i]['date']} - {optimize_results[i]['strategy']} {optimize_results[i]['symbol']} {optimize_results[i]['timeframe']}",
+                        key="opt_selected_result"
+                    )
+
+                    # Toon details
+                    result = optimize_results[selected_result_idx]
+
+                    # Probeer om de bestandspaden van de resultaatafbeeldingen te vinden
+                    result_base = os.path.basename(result['filepath']).replace(
+                        ".json", "")
+
+                    # Controleer of er een afbeelding is
+                    image_path = os.path.join(OPTIMIZE_RESULTS_DIR,
+                                              f"{result_base}.png")
+                    if os.path.exists(image_path):
+                        st.image(image_path,
+                                 caption=f"{result['strategy'].upper()} optimalisatie resultaat",
+                                 use_column_width=True)
+                    else:
+                        st.warning(
+                            "Geen afbeelding gevonden voor dit resultaat")
 
 
-def main():
-    """Hoofdfunctie voor het dashboard."""
-    root = tk.Tk()
-    app = SophiaDashboard(root)
-    root.mainloop()
+def show_live_trading_tab():
+    st.title("🚀 Live Trading")
+
+    # Layout met twee kolommen
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        # MT5 Verbinding sectie
+        st.subheader("MT5 Verbinding")
+
+        # Status container
+        status_container = st.container()
+        with status_container:
+            if st.session_state.live_params["connected"]:
+                st.success("Verbonden met MetaTrader 5")
+            else:
+                st.warning("Niet verbonden met MetaTrader 5")
+
+        # Connect/Disconnect knop
+        if st.session_state.live_params["connected"]:
+            if st.button("Verbreek Verbinding", type="secondary",
+                         use_container_width=True):
+                # Simuleer verbreken verbinding
+                st.session_state.live_params["connected"] = False
+                st.session_state.live_output.append("Verbinding verbroken")
+
+                # Clear positions
+                st.session_state.positions = []
+
+                st.experimental_rerun()
+        else:
+            if st.button("Verbind met MT5", type="secondary",
+                         use_container_width=True):
+                # Simuleer verbinding maken
+                if SOPHIA_IMPORTS_SUCCESS:
+                    try:
+                        config = load_config()
+                        connector = MT5Connector(config.get("mt5", {}))
+                        if connector.connect():
+                            st.session_state.live_params["connected"] = True
+                            st.session_state.live_output.append(
+                                "Verbonden met MetaTrader 5")
+
+                            # Get account info
+                            account_info = connector.get_account_info()
+                            st.session_state.live_output.append(
+                                f"Account balans: {account_info.get('balance', 'onbekend')}")
+
+                            connector.disconnect()
+                            st.experimental_rerun()
+                        else:
+                            st.error(
+                                "Kon geen verbinding maken met MetaTrader 5")
+                            st.session_state.live_output.append(
+                                "Kon geen verbinding maken met MetaTrader 5")
+                    except Exception as e:
+                        st.error(f"Fout bij verbinden: {e}")
+                        st.session_state.live_output.append(
+                            f"Fout bij verbinden: {e}")
+                else:
+                    # Demo mode
+                    st.session_state.live_params["connected"] = True
+                    st.session_state.live_output.append(
+                        "Verbonden met MetaTrader 5 (demo mode)")
+                    st.experimental_rerun()
+
+        # Trading Parameters sectie
+        st.subheader("Trading Parameters")
+
+        # Basis parameters
+        strategy = st.selectbox(
+            "Strategie",
+            ["turtle", "ema"],
+            index=0 if st.session_state.live_params[
+                           "strategy"] == "turtle" else 1,
+            key="live_strategy",
+            disabled=st.session_state.live_params.get("trading", False)
+        )
+        st.session_state.live_params["strategy"] = strategy
+
+        symbols = st.text_input(
+            "Symbolen (komma-gescheiden)",
+            value=st.session_state.live_params["symbols"],
+            key="live_symbols",
+            disabled=st.session_state.live_params.get("trading", False)
+        )
+        st.session_state.live_params["symbols"] = symbols
+
+        timeframe = st.selectbox(
+            "Timeframe",
+            ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+            index=["M1", "M5", "M15", "M30", "H1", "H4", "D1"].index(
+                st.session_state.live_params["timeframe"]),
+            key="live_timeframe",
+            disabled=st.session_state.live_params.get("trading", False)
+        )
+        st.session_state.live_params["timeframe"] = timeframe
+
+        risk = st.number_input(
+            "Risico %",
+            min_value=0.1,
+            max_value=10.0,
+            value=float(st.session_state.live_params["risk"]),
+            key="live_risk",
+            disabled=st.session_state.live_params.get("trading", False)
+        )
+        st.session_state.live_params["risk"] = risk
+
+        interval = st.number_input(
+            "Check Interval (sec)",
+            min_value=1,
+            value=int(st.session_state.live_params["interval"]),
+            key="live_interval",
+            disabled=st.session_state.live_params.get("trading", False)
+        )
+        st.session_state.live_params["interval"] = interval
+
+        # Trading Buttons
+        st.subheader("Trading Controls")
+
+        buttons_col1, buttons_col2 = st.columns(2)
+
+        with buttons_col1:
+            if st.session_state.live_params.get("trading", False):
+                if st.button("Stop Trading", type="primary",
+                             use_container_width=True):
+                    st.session_state.live_params["trading"] = False
+                    st.session_state.live_output.append(
+                        "=== Live Trading Gestopt ===")
+                    st.experimental_rerun()
+            else:
+                if st.button("Start Trading", type="primary",
+                             use_container_width=True,
+                             disabled=not st.session_state.live_params[
+                                 "connected"]):
+                    st.session_state.live_params["trading"] = True
+                    st.session_state.live_output.append(
+                        "=== Live Trading Gestart ===")
+                    st.session_state.live_output.append(
+                        f"Strategie: {st.session_state.live_params['strategy']}")
+                    st.session_state.live_output.append(
+                        f"Symbolen: {st.session_state.live_params['symbols']}")
+                    st.session_state.live_output.append(
+                        f"Timeframe: {st.session_state.live_params['timeframe']}")
+                    st.session_state.live_output.append(
+                        f"Risico per trade: {st.session_state.live_params['risk']}%")
+                    st.session_state.live_output.append(
+                        f"Check interval: {st.session_state.live_params['interval']} seconden")
+
+                    # Demo positie toevoegen
+                    symbol = st.session_state.live_params["symbols"].split(",")[
+                        0]
+                    st.session_state.positions.append({
+                        "symbol": symbol,
+                        "direction": "BUY",
+                        "size": 0.1,
+                        "entry": 1.2345,
+                        "current": 1.2360,
+                        "profit": "+15.00 €"
+                    })
+
+                    st.session_state.live_output.append(
+                        f"Order geplaatst: BUY 0.1 {symbol} @ 1.2345")
+
+                    st.experimental_rerun()
+
+        with buttons_col2:
+            if st.button("Sluit Alle Posities", type="secondary",
+                         use_container_width=True,
+                         disabled=not st.session_state.live_params[
+                             "connected"] or len(
+                             st.session_state.positions) == 0):
+                if len(st.session_state.positions) > 0:
+                    st.session_state.live_output.append(
+                        "Alle posities worden gesloten...")
+                    for pos in st.session_state.positions:
+                        st.session_state.live_output.append(
+                            f"Sluit positie: {pos['direction']} {pos['size']} {pos['symbol']} @ {pos['current']}")
+                    st.session_state.positions = []
+                    st.session_state.live_output.append(
+                        "Alle posities zijn gesloten")
+                    st.experimental_rerun()
+
+    with col2:
+        # Account Overzicht
+        st.subheader("Account Overzicht")
+
+        metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
+
+        # Simuleer account metrics
+        with metrics_col1:
+            if st.session_state.live_params["connected"]:
+                st.metric("Account Balans", "10,000.00 €")
+            else:
+                st.metric("Account Balans", "-")
+
+        with metrics_col2:
+            if st.session_state.live_params["connected"]:
+                equity = 10000.0
+                profit_sum = sum(
+                    [float(pos["profit"].replace("€", "").strip()) for pos in
+                     st.session_state.positions]) if st.session_state.positions else 0.0
+                equity += profit_sum
+                st.metric("Equity", f"{equity:.2f} €")
+            else:
+                st.metric("Equity", "-")
+
+        with metrics_col3:
+            if st.session_state.live_params["connected"]:
+                st.metric("Margin", "0.00 €")
+            else:
+                st.metric("Margin", "-")
+
+        with metrics_col4:
+            if st.session_state.live_params["connected"]:
+                profit_sum = sum(
+                    [float(pos["profit"].replace("€", "").strip()) for pos in
+                     st.session_state.positions]) if st.session_state.positions else 0.0
+                st.metric("Open P/L", f"{profit_sum:.2f} €",
+                          delta=f"{profit_sum:.2f} €")
+            else:
+                st.metric("Open P/L", "-")
+
+        # Open Posities
+        st.subheader("Open Posities")
+
+        if not st.session_state.positions:
+            st.info("Geen open posities")
+        else:
+            # Maak een DataFrame
+            positions_df = pd.DataFrame(st.session_state.positions)
+
+            # Format de DataFrame
+            positions_df.columns = ["Symbool", "Richting", "Grootte", "Entry",
+                                    "Huidig", "Winst/Verlies"]
+
+            # Toon de DataFrame
+            st.dataframe(positions_df, use_container_width=True)
+
+        # Trading Log
+        st.subheader("Trading Log")
+
+        # Toon de output
+        log_container = st.container(height=300)
+        with log_container:
+            for line in st.session_state.live_output:
+                if "===" in line:
+                    st.markdown(f"**{line}**")
+                elif "ERROR" in line or "Fout" in line:
+                    st.error(line)
+                elif "Verbonden" in line or "succesvol" in line:
+                    st.success(line)
+                else:
+                    st.text(line)
+
+        # Clear log knop
+        if st.button("Wis Log", key="clear_live_log"):
+            st.session_state.live_output = []
+            st.experimental_rerun()
+
+
+def show_data_charts_tab():
+    st.title("📈 Data & Charts")
+
+    # Layout met twee kolommen
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        # Data Instellingen sectie
+        st.subheader("Data Instellingen")
+
+        symbol = st.text_input(
+            "Symbool",
+            value=st.session_state.data_params["symbol"],
+            key="data_symbol"
+        )
+        st.session_state.data_params["symbol"] = symbol
+
+        timeframe = st.selectbox(
+            "Timeframe",
+            ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+            index=["M1", "M5", "M15", "M30", "H1", "H4", "D1"].index(
+                st.session_state.data_params["timeframe"]),
+            key="data_timeframe"
+        )
+        st.session_state.data_params["timeframe"] = timeframe
+
+        from_date = st.date_input(
+            "Van Datum",
+            value=pd.to_datetime(st.session_state.data_params["from_date"]),
+            key="data_from_date"
+        )
+        st.session_state.data_params["from_date"] = from_date.strftime(
+            "%Y-%m-%d")
+
+        to_date = st.date_input(
+            "Tot Datum",
+            value=pd.to_datetime(st.session_state.data_params["to_date"]),
+            key="data_to_date"
+        )
+        st.session_state.data_params["to_date"] = to_date.strftime("%Y-%m-%d")
+
+        # Chart Opties
+        st.subheader("Chart Opties")
+
+        chart_type = st.selectbox(
+            "Chart Type",
+            ["candle", "line", "ohlc"],
+            index=["candle", "line", "ohlc"].index(
+                st.session_state.data_params["chart_type"]),
+            key="data_chart_type"
+        )
+        st.session_state.data_params["chart_type"] = chart_type
+
+        show_ema = st.checkbox(
+            "Toon EMA lijnen",
+            value=st.session_state.data_params["show_ema"],
+            key="data_show_ema"
+        )
+        st.session_state.data_params["show_ema"] = show_ema
+
+        if show_ema:
+            ema1_col, ema2_col = st.columns(2)
+
+            with ema1_col:
+                ema1 = st.number_input(
+                    "EMA 1 Periode",
+                    min_value=1,
+                    value=int(st.session_state.data_params["ema1"]),
+                    key="data_ema1"
+                )
+                st.session_state.data_params["ema1"] = ema1
+
+            with ema2_col:
+                ema2 = st.number_input(
+                    "EMA 2 Periode",
+                    min_value=1,
+                    value=int(st.session_state.data_params["ema2"]),
+                    key="data_ema2"
+                )
+                st.session_state.data_params["ema2"] = ema2
+
+        show_bb = st.checkbox(
+            "Toon Bollinger Bands",
+            value=st.session_state.data_params["show_bb"],
+            key="data_show_bb"
+        )
+        st.session_state.data_params["show_bb"] = show_bb
+
+        show_volume = st.checkbox(
+            "Toon Volume",
+            value=st.session_state.data_params["show_volume"],
+            key="data_show_volume"
+        )
+        st.session_state.data_params["show_volume"] = show_volume
+
+        # Update Chart knop
+        if st.button("Update Chart", type="primary", use_container_width=True):
+            # Haal data op
+            df = fetch_mt5_data(
+                st.session_state.data_params["symbol"],
+                st.session_state.data_params["timeframe"],
+                st.session_state.data_params["from_date"],
+                st.session_state.data_params["to_date"]
+            )
+
+            # Sla data op in session state
+            st.session_state.chart_data = df
+
+            # Geef feedback
+            if df is not None and len(df) > 0:
+                st.success(
+                    f"Data opgehaald: {len(df)} bars voor {st.session_state.data_params['symbol']} {st.session_state.data_params['timeframe']}")
+            else:
+                st.error("Geen data gevonden voor deze parameters")
+
+    with col2:
+        # Chart sectie
+        st.subheader(
+            f"{st.session_state.data_params['symbol']} {st.session_state.data_params['timeframe']} Chart")
+
+        # Toon chart indien data beschikbaar is
+        if st.session_state.chart_data is not None and len(
+            st.session_state.chart_data) > 0:
+            # Indicator parameters
+            indicators = None
+            if st.session_state.data_params["show_ema"] or \
+                st.session_state.data_params["show_bb"]:
+                indicators = {}
+                if st.session_state.data_params["show_ema"]:
+                    indicators["ema1"] = st.session_state.data_params["ema1"]
+                    indicators["ema2"] = st.session_state.data_params["ema2"]
+                if st.session_state.data_params["show_bb"]:
+                    indicators["bb"] = True
+
+            # Maak chart
+            fig = create_candlestick_chart(
+                st.session_state.chart_data,
+                title=f"{st.session_state.data_params['symbol']} {st.session_state.data_params['timeframe']}",
+                volume=st.session_state.data_params["show_volume"],
+                indicators=indicators
+            )
+
+            # Toon chart
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Data Explorer
+            st.subheader("Data Verkenner")
+
+            # Toon een tabel met de data
+            data_df = st.session_state.chart_data.copy()
+
+            # Format de data
+            data_df["time"] = pd.to_datetime(data_df["time"])
+            data_df = data_df.sort_values("time", ascending=False)
+
+            # Toon alleen de belangrijkste kolommen
+            data_display = data_df[["time", "open", "high", "low", "close",
+                                    "tick_volume" if "tick_volume" in data_df.columns else "volume"]]
+
+            # Hernoem kolommen
+            data_display.columns = ["Tijd", "Open", "Hoog", "Laag", "Sluit",
+                                    "Volume"]
+
+            # Toon de DataFrame
+            st.dataframe(data_display, use_container_width=True)
+        else:
+            # Placeholder voor de chart
+            st.info(
+                "Geen data beschikbaar. Gebruik 'Update Chart' om data te laden.")
 
 
 if __name__ == "__main__":

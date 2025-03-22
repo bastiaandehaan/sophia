@@ -125,7 +125,7 @@ class MT5Connector:
         self.connected = False
 
     def get_historical_data(
-            self, symbol: str, timeframe: str, bars_count: int = 100
+        self, symbol: str, timeframe: str, bars_count: int = 100
     ) -> Optional[pd.DataFrame]:
         """
         Haal historische prijsdata op van MT5.
@@ -198,14 +198,14 @@ class MT5Connector:
             return {}
 
     def place_order(
-            self,
-            symbol: str,
-            order_type: str,
-            volume: float,
-            price: float = 0.0,
-            sl: float = 0.0,
-            tp: float = 0.0,
-            comment: str = "",
+        self,
+        symbol: str,
+        order_type: str,
+        volume: float,
+        price: float = 0.0,
+        sl: float = 0.0,
+        tp: float = 0.0,
+        comment: str = "",
     ) -> Dict[str, Any]:
         """
         Plaatst een order in MT5.

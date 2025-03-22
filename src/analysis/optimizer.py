@@ -252,7 +252,7 @@ def parse_range(range_str: str) -> List[int]:
 
 
 def generate_parameter_combinations(
-        args, strategy: str, limit: int
+    args, strategy: str, limit: int
 ) -> List[Dict[str, Any]]:
     """
     Genereer alle parameter combinaties voor de gegeven strategie.
@@ -603,7 +603,7 @@ def run_optimization(args, logger):
                     "params": r["params"],
                     "metrics": {
                         k: float(v) if isinstance(v, (
-                        np.float32, np.float64)) else v
+                            np.float32, np.float64)) else v
                         for k, v in r["metrics"].items()
                     },
                 }

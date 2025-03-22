@@ -244,7 +244,8 @@ class TurtleStrategy(bt.Strategy):
 
                 # Extra veiligheidscontrole
                 if None in (
-                prev_entry_high, prev_entry_low, prev_exit_high, prev_exit_low):
+                    prev_entry_high, prev_entry_low, prev_exit_high,
+                    prev_exit_low):
                     continue
 
                 # Controleer volatiliteitsfilter (indien actief)

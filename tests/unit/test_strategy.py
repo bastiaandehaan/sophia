@@ -62,7 +62,7 @@ def test_check_signals_buy(turtle_strategy, mock_connector, sample_ohlc_data):
     # Zorg dat laatste prijs boven entry high ligt
     entry_high = data_with_indicators["entry_high"].iloc[-2]
     data_with_indicators.loc[data_with_indicators.index[-1], "close"] = (
-            entry_high * 1.01
+        entry_high * 1.01
     )
 
     # Check voor signalen

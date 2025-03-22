@@ -103,7 +103,7 @@ class EMAStrategy:
         return df
 
     def check_signals(
-            self, symbol: str, data: Optional[pd.DataFrame] = None
+        self, symbol: str, data: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
         """
         Controleer op handelssignalen.
@@ -118,7 +118,7 @@ class EMAStrategy:
         if data is None:
             # Haal data op als deze niet is meegegeven
             bars_needed = (
-                    max(self.slow_ema, self.rsi_period) + 30
+                max(self.slow_ema, self.rsi_period) + 30
             )  # Extra bars voor goede berekening
             data = self.connector.get_historical_data(
                 symbol, self.config.get("timeframe", "H4"), bars_needed
@@ -173,11 +173,11 @@ class EMAStrategy:
                                      current_direction)
 
     def _generate_signal(
-            self,
-            symbol: str,
-            data: pd.DataFrame,
-            indicators: Dict[str, Any],
-            current_direction: Optional[str],
+        self,
+        symbol: str,
+        data: pd.DataFrame,
+        indicators: Dict[str, Any],
+        current_direction: Optional[str],
     ) -> Dict[str, Any]:
         """
         Genereer een handelssignaal op basis van de berekende indicators.
@@ -214,13 +214,13 @@ class EMAStrategy:
             # 3. RSI > 50 (momentum bevestiging)
             # 4. Prijs boven midden Bollinger (extra filter)
             if (
-                    fast_ema > slow_ema
-                    and macd > signal_line
-                    and macd_hist > 0
-                    and prev_macd_hist <= 0  # Crossover
-                    and rsi > 50
-                    and momentum > 0
-                    and current_price > bollinger_mid
+                fast_ema > slow_ema
+                and macd > signal_line
+                and macd_hist > 0
+                and prev_macd_hist <= 0  # Crossover
+                and rsi > 50
+                and momentum > 0
+                and current_price > bollinger_mid
             ):
 
                 signal = "BUY"
@@ -239,13 +239,13 @@ class EMAStrategy:
             # 3. RSI < 50 (momentum bevestiging)
             # 4. Prijs onder midden Bollinger (extra filter)
             elif (
-                    fast_ema < slow_ema
-                    and macd < signal_line
-                    and macd_hist < 0
-                    and prev_macd_hist >= 0  # Crossover
-                    and rsi < 50
-                    and momentum < 0
-                    and current_price < bollinger_mid
+                fast_ema < slow_ema
+                and macd < signal_line
+                and macd_hist < 0
+                and prev_macd_hist >= 0  # Crossover
+                and rsi < 50
+                and momentum < 0
+                and current_price < bollinger_mid
             ):
 
                 signal = "SELL"
@@ -262,7 +262,7 @@ class EMAStrategy:
         elif current_direction == "BUY":
             # Exit long positie als MACD onder signaal lijn kruist of EMA crossover
             if (
-                    macd < signal_line and macd_hist < 0 and prev_macd_hist >= 0
+                macd < signal_line and macd_hist < 0 and prev_macd_hist >= 0
             ) or fast_ema < slow_ema:
                 signal = "CLOSE_BUY"
                 meta = {"reason": "ema_macd_long_exit"}
@@ -270,7 +270,7 @@ class EMAStrategy:
         elif current_direction == "SELL":
             # Exit short positie als MACD boven signaal lijn kruist of EMA crossover
             if (
-                    macd > signal_line and macd_hist > 0 and prev_macd_hist <= 0
+                macd > signal_line and macd_hist > 0 and prev_macd_hist <= 0
             ) or fast_ema > slow_ema:
                 signal = "CLOSE_SELL"
                 meta = {"reason": "ema_macd_short_exit"}
@@ -354,11 +354,11 @@ class EMAStrategy:
                 profit_multiplier = self.config.get("profit_multiplier", 3.0)
                 if signal == "BUY":
                     take_profit = entry_price + (
-                            self.atr_multiplier * profit_multiplier * atr_value
+                        self.atr_multiplier * profit_multiplier * atr_value
                     )
                 else:  # SELL
                     take_profit = entry_price - (
-                            self.atr_multiplier * profit_multiplier * atr_value
+                        self.atr_multiplier * profit_multiplier * atr_value
                     )
             else:
                 # Fallback als geen ATR beschikbaar is

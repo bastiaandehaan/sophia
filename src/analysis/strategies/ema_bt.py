@@ -238,7 +238,7 @@ class EMAStrategy(bt.Strategy):
 
         if self.positions[symbol] > 0:  # Long positie
             stop_price = current_price - (
-                        self.params.atr_multiplier * atr_value)
+                self.params.atr_multiplier * atr_value)
             self.stop_prices[symbol] = stop_price
 
             # Plaats stop order
@@ -254,7 +254,7 @@ class EMAStrategy(bt.Strategy):
 
         elif self.positions[symbol] < 0:  # Short positie
             stop_price = current_price + (
-                        self.params.atr_multiplier * atr_value)
+                self.params.atr_multiplier * atr_value)
             self.stop_prices[symbol] = stop_price
 
             # Plaats stop order
@@ -288,7 +288,7 @@ class EMAStrategy(bt.Strategy):
 
         if self.positions[symbol] > 0:  # Long positie
             target_price = current_price + (
-                        self.params.profit_target * atr_value)
+                self.params.profit_target * atr_value)
 
             # Plaats limit order
             self.target_orders[symbol] = self.sell(
@@ -303,7 +303,7 @@ class EMAStrategy(bt.Strategy):
 
         elif self.positions[symbol] < 0:  # Short positie
             target_price = current_price - (
-                        self.params.profit_target * atr_value)
+                self.params.profit_target * atr_value)
 
             # Plaats limit order
             self.target_orders[symbol] = self.buy(
@@ -423,8 +423,8 @@ class EMAStrategy(bt.Strategy):
             if not self._is_in_session(data):
                 # Eventueel posities sluiten aan einde sessie
                 if (
-                        pos != 0
-                        and data.datetime.time().hour >= self.params.session_end - 1
+                    pos != 0
+                    and data.datetime.time().hour >= self.params.session_end - 1
                 ):
                     self.log(f"SESSION END: Closing position for {symbol}")
                     self.close(data=data)
@@ -453,13 +453,13 @@ class EMAStrategy(bt.Strategy):
                 # 2. MACD histogram draait positief (crossover)
                 # 3. RSI > 50 (momentum bevestiging)
                 if (
-                        fast_ema > slow_ema
-                        and macd > signal
-                        and macd_hist > 0
-                        and prev_macd_hist <= 0  # Crossover
-                        and rsi > 50
-                        and momentum > 0
-                        and data.close[0] > boll_mid
+                    fast_ema > slow_ema
+                    and macd > signal
+                    and macd_hist > 0
+                    and prev_macd_hist <= 0  # Crossover
+                    and rsi > 50
+                    and momentum > 0
+                    and data.close[0] > boll_mid
                 ):  # Prijs boven midden Bollinger
 
                     self.log(f"BUY SIGNAL for {symbol} at {data.close[0]:.5f}")
@@ -472,13 +472,13 @@ class EMAStrategy(bt.Strategy):
                 # 2. MACD histogram draait negatief (crossover)
                 # 3. RSI < 50 (momentum bevestiging)
                 elif (
-                        fast_ema < slow_ema
-                        and macd < signal
-                        and macd_hist < 0
-                        and prev_macd_hist >= 0  # Crossover
-                        and rsi < 50
-                        and momentum < 0
-                        and data.close[0] < boll_mid
+                    fast_ema < slow_ema
+                    and macd < signal
+                    and macd_hist < 0
+                    and prev_macd_hist >= 0  # Crossover
+                    and rsi < 50
+                    and momentum < 0
+                    and data.close[0] < boll_mid
                 ):  # Prijs onder midden Bollinger
 
                     self.log(f"SELL SIGNAL for {symbol} at {data.close[0]:.5f}")
@@ -490,7 +490,7 @@ class EMAStrategy(bt.Strategy):
             elif pos > 0:  # Long positie
                 # Exit als MACD onder signaal lijn kruist of EMA crossover
                 if (
-                        macd < signal and macd_hist < 0 and prev_macd_hist >= 0
+                    macd < signal and macd_hist < 0 and prev_macd_hist >= 0
                 ) or fast_ema < slow_ema:
                     self.log(f"CLOSE LONG for {symbol} at {data.close[0]:.5f}")
 
@@ -510,7 +510,7 @@ class EMAStrategy(bt.Strategy):
             elif pos < 0:  # Short positie
                 # Exit als MACD boven signaal lijn kruist of EMA crossover
                 if (
-                        macd > signal and macd_hist > 0 and prev_macd_hist <= 0
+                    macd > signal and macd_hist > 0 and prev_macd_hist <= 0
                 ) or fast_ema > slow_ema:
                     self.log(f"CLOSE SHORT for {symbol} at {data.close[0]:.5f}")
 

@@ -85,7 +85,7 @@ class TurtleStrategy:
         return df
 
     def check_signals(
-            self, symbol: str, data: Optional[pd.DataFrame] = None
+        self, symbol: str, data: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
         """
         Controleer op handelssignalen.
@@ -143,11 +143,11 @@ class TurtleStrategy:
                                      current_direction)
 
     def _generate_signal(
-            self,
-            symbol: str,
-            data: pd.DataFrame,
-            indicators: Dict[str, Any],
-            current_direction: Optional[str],
+        self,
+        symbol: str,
+        data: pd.DataFrame,
+        indicators: Dict[str, Any],
+        current_direction: Optional[str],
     ) -> Dict[str, Any]:
         """
         Genereer een handelssignaal op basis van de berekende indicators.
@@ -234,7 +234,7 @@ class TurtleStrategy:
         }
 
     def check_signals_with_data(
-            self, symbol: str, data: pd.DataFrame
+        self, symbol: str, data: pd.DataFrame
     ) -> Dict[str, Any]:
         """
         Check voor signalen met voorbewerkte data (voor tests).

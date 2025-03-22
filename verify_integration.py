@@ -119,8 +119,8 @@ def print_subheader(message: str) -> None:
 
 
 def print_progress(
-        current: int, total: int, prefix: str = "", suffix: str = "",
-        length: int = 50
+    current: int, total: int, prefix: str = "", suffix: str = "",
+    length: int = 50
 ) -> None:
     """Toon een voortgangsbalk in de console."""
     percent = int(100 * (current / float(total)))
@@ -136,8 +136,8 @@ class FrameworkVerifier:
     """Uitgebreide verificatietool voor het Sophia Trading Framework."""
 
     def __init__(
-            self, verbose: bool = False, diagram: bool = False,
-            performance: bool = False
+        self, verbose: bool = False, diagram: bool = False,
+        performance: bool = False
     ):
         """
         Initialiseer de framework verificatietool.
@@ -292,8 +292,8 @@ class FrameworkVerifier:
             # Verifieer backtest import flow
             main_source = inspect.getsource(main_module)
             if (
-                    "analysis.backtest" not in main_source
-                    or "dashboard_main" not in main_source
+                "analysis.backtest" not in main_source
+                or "dashboard_main" not in main_source
             ):
                 return VerificationResult(
                     component="Main Module Integratie",
@@ -837,8 +837,8 @@ class FrameworkVerifier:
                         f"{rel_path}: Mist UTF-8 encoding declaratie")
 
                 if (
-                        not content.strip().startswith("#!/usr/bin/env python")
-                        and "main.py" in file_path
+                    not content.strip().startswith("#!/usr/bin/env python")
+                    and "main.py" in file_path
                 ):
                     style_issues.append(
                         f"{rel_path}: Mist shebang regel voor executable script"
@@ -1073,7 +1073,7 @@ class FrameworkVerifier:
                                                                       list):
                                 print(f"  - Style issues ({len(value)}):")
                                 for i, issue in enumerate(
-                                        value[:5]
+                                    value[:5]
                                 ):  # Toon max 5 issues
                                     print(f"    {i + 1}. {issue}")
                                 if len(value) > 5:
@@ -1102,8 +1102,8 @@ class FrameworkVerifier:
             # Controleer op specifieke problemen en geef gerichte adviezen
             for result in failed:
                 if (
-                        "BacktraderAdapter" in result.component
-                        and "NoneType" in result.message
+                    "BacktraderAdapter" in result.component
+                    and "NoneType" in result.message
                 ):
                     print(
                         f"\n{ConsoleColors.BLUE}Specifiek advies voor BacktraderAdapter issue:{ConsoleColors.ENDC}"
@@ -1127,9 +1127,9 @@ class FrameworkVerifier:
             redundant_files = []
             for result in self.results:
                 if (
-                        result.component == "Bestandsstructuur"
-                        and result.details
-                        and "redundant_files" in result.details
+                    result.component == "Bestandsstructuur"
+                    and result.details
+                    and "redundant_files" in result.details
                 ):
                     redundant_files = result.details["redundant_files"]
 

@@ -207,8 +207,8 @@ class SophiaTrader:
 
             # Zorg ervoor dat positions dictionary bestaat
             if (
-                    not hasattr(self.strategy, "positions")
-                    or self.strategy.positions is None
+                not hasattr(self.strategy, "positions")
+                or self.strategy.positions is None
             ):
                 self.strategy.positions = {}
 

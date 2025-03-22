@@ -9,11 +9,10 @@ om bestaande Sophia strategieën te gebruiken in backtesting zonder aanpassingen
 aan de originele code.
 """
 
+import logging
 import os
 import sys
-import logging
-from typing import Dict, Any, Type, Optional, List, Tuple, Union
-from datetime import datetime
+from typing import Dict, Any, Type, Optional, Tuple
 
 # Zorg dat project root in sys.path staat
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,7 +22,6 @@ if project_root not in sys.path:
 
 import backtrader as bt
 import pandas as pd
-import numpy as np
 
 
 class StrategyAdapter:
@@ -130,7 +128,7 @@ class StrategyAdapter:
 
     def convert_sophia_signal_to_backtrader(self,
                                             sophia_signal: Dict[str, Any]) -> \
-    Tuple[str, Dict[str, Any]]:
+        Tuple[str, Dict[str, Any]]:
         """
         Converteer een Sophia signaal naar Backtrader formaat.
 

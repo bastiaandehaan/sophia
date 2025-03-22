@@ -80,7 +80,7 @@ def load_config(config_path: str = "config/settings.json") -> Dict[str, Any]:
 
 
 def save_config(
-        config: Dict[str, Any], config_path: str = "config/settings.json"
+    config: Dict[str, Any], config_path: str = "config/settings.json"
 ) -> bool:
     """
     Slaat configuratie op naar JSON bestand.
@@ -123,7 +123,7 @@ def format_price(price: float, symbol: str = "EURUSD") -> str:
 
 
 def calculate_pip_value(
-        symbol: str, lot_size: float = 1.0, account_currency: str = "USD"
+    symbol: str, lot_size: float = 1.0, account_currency: str = "USD"
 ) -> float:
     """
     Bereken de waarde van 1 pip voor het gegeven symbool.

@@ -12,7 +12,6 @@ from typing import Dict, List, Optional, Union, Tuple, Any
 import MetaTrader5 as mt5
 import backtrader as bt
 import pandas as pd
-import numpy as np
 
 from src.connector import MT5Connector
 
@@ -160,13 +159,13 @@ class BacktraderAdapter:
                     < current_time.replace(
                         microsecond=0, second=0, minute=current_time.minute
                     )
-                ]
+                    ]
             elif timeframe == "D1":
                 df = df[
                     df["time"]
                     < current_time.replace(microsecond=0, second=0, minute=0,
-                                        hour=0)
-                ]
+                                           hour=0)
+                    ]
 
         # VERBETERD: Zorg voor voldoende data vóór gebruik
         # Minimale datapoints voor betrouwbare indicator-berekeningen
@@ -186,7 +185,7 @@ class BacktraderAdapter:
                 # Pas timestamps aan voor de padding
                 for i in range(min_required - len(df)):
                     padding.iloc[i, padding.columns.get_loc('time')] = df[
-                                                                        'time'].min() - datetime.timedelta(
+                                                                           'time'].min() - datetime.timedelta(
                         days=i + 1)
 
                 # Combineer padding met oorspronkelijke data
@@ -270,8 +269,10 @@ class BacktraderAdapter:
         data_feed = MT5DataFeed(
             dataname=df,
             name=symbol,
-            timeframe=self.timeframe_map.get(timeframe, (bt.TimeFrame.Days, 1))[0],
-            compression=self.timeframe_map.get(timeframe, (bt.TimeFrame.Days, 1))[1],
+            timeframe=self.timeframe_map.get(timeframe, (bt.TimeFrame.Days, 1))[
+                0],
+            compression=
+            self.timeframe_map.get(timeframe, (bt.TimeFrame.Days, 1))[1],
         )
 
         self.cerebro.adddata(data_feed, name=symbol)
@@ -414,7 +415,7 @@ class BacktraderAdapter:
 
         if filename:
             self.cerebro.plot(**plot_args,
-                            savefig=dict(fname=filename, dpi=300))
+                              savefig=dict(fname=filename, dpi=300))
             self.logger.info(f"Plot saved to {filename}")
         else:
             self.cerebro.plot(**plot_args)
@@ -445,12 +446,14 @@ class BacktraderAdapter:
             if hasattr(trades.get("lost", {}), 'get'):
                 lost_pnl = trades.get("lost", {}).get("pnl", 0.0)
                 # Absolute waarde alleen na float conversie
-                lost_total = abs(float(lost_pnl)) if lost_pnl is not None else 0.0
+                lost_total = abs(
+                    float(lost_pnl)) if lost_pnl is not None else 0.0
             else:
                 lost_total = 0.0
 
         except (TypeError, ValueError) as e:
-            self.logger.warning(f"Kon profit factor niet correct berekenen: {e}")
+            self.logger.warning(
+                f"Kon profit factor niet correct berekenen: {e}")
             return 1.0  # Neutrale fallback waarde
 
         # Vermijd division by zero
