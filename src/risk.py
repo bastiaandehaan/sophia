@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # src/risk.py
 import datetime
 import logging

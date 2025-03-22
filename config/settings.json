@@ -19,8 +19,8 @@
     "max_correlated": 2
   },
   "strategy": {
-    "entry_period": 20,
-    "exit_period": 10,
+    "entry_period": 40,
+    "exit_period": 20,
     "atr_period": 14,
     "vol_filter": true,
     "vol_lookback": 100,

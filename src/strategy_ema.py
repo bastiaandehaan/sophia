@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # src/strategy_ema.py
 import logging
 from datetime import datetime

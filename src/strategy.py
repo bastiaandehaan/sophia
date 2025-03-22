@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # src/strategy.py
 import logging
 from datetime import datetime

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # src/utils.py
 import json
 import logging
