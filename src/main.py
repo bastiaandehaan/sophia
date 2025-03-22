@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # src/main.py
 import argparse
 import os
@@ -7,6 +9,12 @@ import time
 import traceback
 from datetime import datetime
 from typing import Dict, Any, Optional
+
+"""
+Main module voor het Sophia Trading Framework.
+
+Beschrijving van functionaliteit volgt hier.
+"""
 
 # Voeg project root toe aan Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))

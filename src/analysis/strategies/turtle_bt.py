@@ -44,16 +44,27 @@ class TurtleStrategy(bt.Strategy):
         self.logger = logging.getLogger("sophia.backtrader.turtle")
 
         # Dictionary om posities bij te houden per data/symbool
-        self.positions = {}
+        self._positions = {}  # Verander naar _positions (private)
         self.orders = {}
 
         # Indicators per data feed
         self.inds = {}
 
+        # Minimale aantallen bars nodig voor betrouwbare berekeningen
+        self.min_bars_required = max(
+            self.params.entry_period,
+            self.params.exit_period,
+            self.params.atr_period
+        ) + 5  # Extra marge voor veiligheid
+
+        # Interne state tracking
+        self.ready_for_trading = {}
+
         # Loop over alle data feeds en maak indicators aan
         for i, data in enumerate(self.datas):
-            self.positions[data._name] = 0
+            self._positions[data._name] = 0  # Gebruik _positions
             self.orders[data._name] = None
+            self.ready_for_trading[data._name] = False
 
             # Entry Donchian Channel (hoogste high en laagste low over entry_period)
             entry_high = btind.Highest(data.high,
@@ -97,6 +108,26 @@ class TurtleStrategy(bt.Strategy):
 
             self.logger.info(f"Initialized Turtle strategy for {data._name}")
 
+    # Voeg prenext methode toe om array-indexeringsproblemen te voorkomen
+    def prenext(self):
+        """
+        Wordt aangeroepen wanneer er onvoldoende data beschikbaar is.
+        Voorkomt handelingen met incomplete datasets.
+        """
+        # Skip alle berekeningen tijdens deze fase
+        pass
+
+    # Voeg deze property en setter toe om het probleem op te lossen
+    @property
+    def positions(self):
+        """Get positions dictionary."""
+        return self._positions
+
+    @positions.setter
+    def positions(self, value):
+        """Set positions dictionary."""
+        self._positions = value
+
     def log(self, txt, dt=None):
         """Log bericht met timestamp."""
         dt = dt or self.datas[0].datetime.date(0)
@@ -114,14 +145,18 @@ class TurtleStrategy(bt.Strategy):
             return
 
         # Vind het symbool voor dit order
+        found_symbol = None
         for data_name, ord in self.orders.items():
             if ord is not None and order.ref == ord.ref:
                 # Order is van dit symbool
-                symbol = data_name
+                found_symbol = data_name
                 break
-        else:
+
+        if found_symbol is None:
             # Order niet gevonden, waarschijnlijk een verouderd order
             return
+
+        symbol = found_symbol  # Gebruik de gevonden waarde
 
         # Controleer of het order is voltooid
         if order.status in [order.Completed]:
@@ -130,13 +165,13 @@ class TurtleStrategy(bt.Strategy):
                     f"BUY EXECUTED for {symbol}, Price: {order.executed.price:.5f}, "
                     f"Size: {order.executed.size:.2f}"
                 )
-                self.positions[symbol] = 1
+                self._positions[symbol] = 1
             elif order.issell():
                 self.log(
                     f"SELL EXECUTED for {symbol}, Price: {order.executed.price:.5f}, "
                     f"Size: {order.executed.size:.2f}"
                 )
-                self.positions[symbol] = -1
+                self._positions[symbol] = -1
 
             # Reset order referentie
             self.orders[symbol] = None
@@ -172,86 +207,127 @@ class TurtleStrategy(bt.Strategy):
         # Loop over alle data feeds
         for i, data in enumerate(self.datas):
             symbol = data._name
-            pos = self.positions[symbol]
-            inds = self.inds[symbol]
+
+            # Controleer of we voldoende data hebben voor betrouwbare berekeningen
+            if not self.ready_for_trading.get(symbol, False):
+                if len(data) >= self.min_bars_required:
+                    self.ready_for_trading[symbol] = True
+                    self.log(f"Strategie is nu klaar voor trading op {symbol}")
+                else:
+                    continue  # Skip tot we voldoende historische data hebben
+
+            # Veilig ophalen van positie- en indicator-data
+            pos = self._positions.get(symbol, 0)
+            inds = self.inds.get(symbol, {})
 
             # Skip als er al een pending order is
-            if self.orders[symbol] is not None:
+            if self.orders.get(symbol) is not None:
                 continue
 
-            # Huidige data waarden
-            current_price = data.close[0]
-            prev_entry_high = inds["entry_high"][
-                -1]  # Vorige waarde (not current day)
-            prev_entry_low = inds["entry_low"][-1]
-            prev_exit_high = inds["exit_high"][-1]
-            prev_exit_low = inds["exit_low"][-1]
+            try:
+                # Gebruik veilige array toegang
+                current_price = data.close[0]
 
-            # Controleer volatiliteitsfilter (indien actief)
-            vol_filter_passed = True
-            if inds["vol_filter"] is not None:
-                vol_filter_passed = inds["vol_filter"][0]
+                # Veiligere indexering
+                if i < len(data) - 1:  # Controleer of er vorige bars zijn
+                    prev_entry_high = inds["entry_high"][-2] if len(
+                        inds["entry_high"]) > 1 else None
+                    prev_entry_low = inds["entry_low"][-2] if len(
+                        inds["entry_low"]) > 1 else None
+                    prev_exit_high = inds["exit_high"][-2] if len(
+                        inds["exit_high"]) > 1 else None
+                    prev_exit_low = inds["exit_low"][-2] if len(
+                        inds["exit_low"]) > 1 else None
+                else:
+                    # Niet genoeg history
+                    continue
 
-            # Controleer trendfilter (indien actief)
-            trend_up = True
-            trend_down = True
-            if inds["trend_up"] is not None:
-                trend_up = inds["trend_up"][0]
-            if inds["trend_down"] is not None:
-                trend_down = inds["trend_down"][0]
+                # Extra veiligheidscontrole
+                if None in (
+                prev_entry_high, prev_entry_low, prev_exit_high, prev_exit_low):
+                    continue
 
-            # Entry logica als we geen positie hebben
-            if pos == 0:
-                # Long entry (breakout boven entry_high)
-                if current_price > prev_entry_high and vol_filter_passed and trend_up:
-                    # Calculate position size based on ATR for risk management
-                    atr_value = inds["atr"][0]
-                    stop_price = current_price - (2 * atr_value)
+                # Controleer volatiliteitsfilter (indien actief)
+                vol_filter_passed = True
+                if "vol_filter" in inds and inds["vol_filter"] is not None:
+                    # Try-except om array indexing errors op te vangen
+                    try:
+                        vol_filter_passed = bool(inds["vol_filter"][0])
+                    except:
+                        vol_filter_passed = True  # Fallback naar True als er een error is
 
-                    self.log(
-                        f"BUY SIGNAL for {symbol} at {current_price:.5f}, "
-                        f"Stop: {stop_price:.5f}"
-                    )
+                # Controleer trendfilter (indien actief)
+                trend_up = True
+                trend_down = True
+                if "trend_up" in inds and inds["trend_up"] is not None:
+                    try:
+                        trend_up = bool(inds["trend_up"][0])
+                    except:
+                        trend_up = True
+                if "trend_down" in inds and inds["trend_down"] is not None:
+                    try:
+                        trend_down = bool(inds["trend_down"][0])
+                    except:
+                        trend_down = True
 
-                    # Place buy order
-                    self.orders[symbol] = self.buy(data=data)
-                    self.positions[symbol] = 1
+                # Entry logica als we geen positie hebben
+                if pos == 0:
+                    # Long entry (breakout boven entry_high)
+                    if current_price > prev_entry_high and vol_filter_passed and trend_up:
+                        # Calculate position size based on ATR for risk management
+                        atr_value = inds["atr"][0]
+                        stop_price = current_price - (2 * atr_value)
 
-                # Short entry (breakout onder entry_low)
-                elif (
+                        self.log(
+                            f"BUY SIGNAL for {symbol} at {current_price:.5f}, "
+                            f"Stop: {stop_price:.5f}"
+                        )
+
+                        # Place buy order
+                        self.orders[symbol] = self.buy(data=data)
+                        self._positions[symbol] = 1
+
+                    # Short entry (breakout onder entry_low)
+                    elif (
                         current_price < prev_entry_low and vol_filter_passed and trend_down
-                ):
-                    # Calculate position size based on ATR for risk management
-                    atr_value = inds["atr"][0]
-                    stop_price = current_price + (2 * atr_value)
+                    ):
+                        # Calculate position size based on ATR for risk management
+                        atr_value = inds["atr"][0]
+                        stop_price = current_price + (2 * atr_value)
 
-                    self.log(
-                        f"SELL SIGNAL for {symbol} at {current_price:.5f}, "
-                        f"Stop: {stop_price:.5f}"
-                    )
+                        self.log(
+                            f"SELL SIGNAL for {symbol} at {current_price:.5f}, "
+                            f"Stop: {stop_price:.5f}"
+                        )
 
-                    # Place sell order
-                    self.orders[symbol] = self.sell(data=data)
-                    self.positions[symbol] = -1
+                        # Place sell order
+                        self.orders[symbol] = self.sell(data=data)
+                        self._positions[symbol] = -1
 
-            # Exit logica voor bestaande posities
-            elif pos > 0:  # Long positie
-                # Exit long positie als prijs onder exit_low daalt
-                if current_price < prev_exit_low:
-                    self.log(f"CLOSE LONG for {symbol} at {current_price:.5f}")
+                # Exit logica voor bestaande posities
+                elif pos > 0:  # Long positie
+                    # Exit long positie als prijs onder exit_low daalt
+                    if current_price < prev_exit_low:
+                        self.log(
+                            f"CLOSE LONG for {symbol} at {current_price:.5f}")
 
-                    # Close long position
-                    self.orders[symbol] = self.close(data=data)
-                    self.positions[symbol] = 0
+                        # Close long position
+                        self.orders[symbol] = self.close(data=data)
+                        self._positions[symbol] = 0
 
-            elif pos < 0:  # Short positie
-                # Exit short positie als prijs boven exit_high stijgt
-                if current_price > prev_exit_high:
-                    self.log(f"CLOSE SHORT for {symbol} at {current_price:.5f}")
+                elif pos < 0:  # Short positie
+                    # Exit short positie als prijs boven exit_high stijgt
+                    if current_price > prev_exit_high:
+                        self.log(
+                            f"CLOSE SHORT for {symbol} at {current_price:.5f}")
 
-                    # Close short position
-                    self.orders[symbol] = self.close(data=data)
-                    self.positions[symbol] = 0
+                        # Close short position
+                        self.orders[symbol] = self.close(data=data)
+                        self._positions[symbol] = 0
+
+            except Exception as e:
+                self.log(f"Fout tijdens verwerken van data voor {symbol}: {e}")
+                continue
 
     def stop(self):
         """

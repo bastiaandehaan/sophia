@@ -28,11 +28,24 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Any, Optional
 
 # Project root toevoegen aan sys.path
-# Bovenaan in verify_integration.py
 script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = script_dir  # Aanpassing: gebruik scriptdir als project root
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Detecteer project root op basis van de aanwezigheid van specifieke mappen
+if os.path.exists(os.path.join(script_dir, "src")):
+    project_root = script_dir  # Script is al in de root
+elif os.path.exists(os.path.join(os.path.dirname(script_dir), "src")):
+    project_root = os.path.dirname(script_dir)  # Ga één niveau omhoog
+else:
+    # Probeer het project root te vinden door omhoog te navigeren
+    current_dir = script_dir
+    max_levels = 3  # Maximum aantal niveaus omhoog
+    for _ in range(max_levels):
+        parent_dir = os.path.dirname(current_dir)
+        if os.path.exists(os.path.join(parent_dir, "src")):
+            project_root = parent_dir
+            break
+        current_dir = parent_dir
+    else:
+        project_root = script_dir  # Fallback
 
 # Configureer logging
 logging.basicConfig(

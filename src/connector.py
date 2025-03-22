@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # src/connector.py
 import logging
 import os
