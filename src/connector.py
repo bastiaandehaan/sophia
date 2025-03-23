@@ -38,12 +38,13 @@ class MT5Connector:
         self.mt5 = mt5
 
     def _validate_mt5_path(self) -> bool:
-        """
-        Valideert het MT5 installatiepath en probeert alternatieven als het huidige pad niet werkt.
 
-        Returns:
-            bool: True als een werkend pad is gevonden, anders False
         """
+                Valideert het MT5 installatiepath en probeert alternatieven als het huidige pad niet werkt.
+
+                Returns:
+                    bool: True als een werkend pad is gevonden, anders False
+                """
         current_path = self.config.get("mt5_path", "")
 
         # Als het huidige pad werkt, gebruik het
