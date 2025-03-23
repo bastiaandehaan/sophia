@@ -88,13 +88,20 @@ class RiskManager:
             )
             return 0.01  # Minimum positie
 
+        # Gebruik symbol_details indien beschikbaar
+        from src.utils import get_symbol_details
+        symbol_details = get_symbol_details(symbol, self.config)
+
         # Bepaal symbooltype
         symbol_type = self.symbol_types.get(symbol, "forex_major")
 
-        # Bepaal pip-waarde voor dit symbool
-        pip_value = self.pip_value_map.get(
-            symbol_type, 10.0
-        )  # Default naar 10.0 voor forex major pairs
+        # Bepaal pip-waarde en contract size voor dit symbool
+        pip_value = self.pip_value_map.get(symbol_type, 10.0)
+        contract_size = symbol_details.get("contract_size", 100000.0)
+
+        # Update pip_value op basis van contract grootte als die afwijkt
+        if contract_size != 100000.0:
+            pip_value = pip_value * (contract_size / 100000.0)
 
         # Bereken risicobedrag in account valuta
         risk_amount = account_balance * self.risk_per_trade
@@ -107,7 +114,7 @@ class RiskManager:
             return 0.01  # Minimale positie als dagelijks verlies al bereikt is
 
         # Bereken pips risico - aanpassen aan symboolspecifieke pip definitie
-        pip_multiplier = 0.01 if symbol.startswith("JPY") else 0.0001
+        pip_multiplier = 0.01 if symbol.endswith("JPY") else 0.0001
         pips_at_risk = price_difference / pip_multiplier
 
         # Bereken lotgrootte gebaseerd op risico
@@ -120,10 +127,11 @@ class RiskManager:
         self.logger.debug(f"Onafgeronde lot size: {lot_size}")
 
         # Begrens tussen min en max
-        min_lot = 0.01  # Standaard minimum lot
+        min_lot = symbol_details.get("min_lot", 0.01)
         max_lot = min(
-            10.0, account_balance * 0.1 / (1000 * pip_value)
-        )  # Nooit meer dan 10% hefboom
+            symbol_details.get("max_lot", 10.0),
+            account_balance * 0.1 / (1000 * pip_value)
+        )
 
         # Detecteer nauwe stops VOOR de begrenzing
         is_narrow_stop = pips_at_risk < 10

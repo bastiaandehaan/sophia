@@ -41,6 +41,29 @@ class TurtleStrategy:
         # Positie tracking
         self.positions = {}
 
+    def check_trading_hours(self, symbol: str) -> bool:
+        """
+        Controleer of we binnen de handelsuren zijn voor dit symbool.
+
+        Returns:
+            bool: True als handel is toegestaan, anders False
+        """
+        now = datetime.now().replace(microsecond=0)
+        weekday = now.strftime('%A').lower()
+
+        # Haal handelsuren op uit config
+        market_hours = self.config.get("market_hours", {}).get("forex", {})
+        hours = market_hours.get(weekday, [])
+
+        if not hours:
+            return True  # Standaard open als geen uren gespecificeerd zijn
+
+        # Controleer of huidige tijd binnen handelsuren valt
+        current_time = now.strftime('%H:%M')
+        start_time, end_time = hours
+
+        return start_time <= current_time <= end_time
+
     def calculate_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Bereken indicators voor de Turtle strategie.
@@ -112,6 +135,15 @@ class TurtleStrategy:
                     "meta": {},
                     "timestamp": datetime.now(),
                 }
+
+        # Controleer of handel is toegestaan op basis van handelsuren
+        if not self.check_trading_hours(symbol):
+            return {
+                "symbol": symbol,
+                "signal": None,
+                "meta": {"reason": "outside_trading_hours"},
+                "timestamp": datetime.now(),
+            }
 
         # Bereken indicators
         data = self.calculate_indicators(data)
@@ -328,7 +360,7 @@ class TurtleStrategy:
 
             # Bereken positiegrootte
             position_size = self.risk_manager.calculate_position_size(
-                account_balance, entry_price, stop_loss
+                account_balance, entry_price, stop_loss, symbol
             )
 
             if position_size <= 0:
