@@ -162,4 +162,23 @@ def get_symbol_precision(symbol: str) -> int:
     # Vereenvoudigde precisie regels
     if symbol.endswith("JPY"):
         return 3  # JPY paren hebben typisch 3 decimalen
-    return 5  # Andere forex paren hebben typisch 5 decimalen
+    return 5  # Andere forex paren hebben typisch 5
+
+
+def get_symbol_details(symbol: str, config: Dict[str, Any] = None) -> Dict[
+    str, Any]:
+    """
+    Haal symbool-specifieke details op uit de configuratie.
+
+    Args:
+        symbol: Het handelssymbool (bijv. "EURUSD")
+        config: Optionele configuratie, als None wordt de standaardconfiguratie geladen
+
+    Returns:
+        Dict met symbooldetails of een lege dict als het symbool niet gevonden wordt
+    """
+    if config is None:
+        config = load_config()
+
+    symbol_details = config.get("symbol_details", {})
+    return symbol_details.get(symbol, {})
