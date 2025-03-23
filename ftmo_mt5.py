@@ -2,37 +2,40 @@
 # -*- coding: utf-8 -*-
 
 """
-Verbeterde MT5 Broker Analyzer
-----------------------------
-Analyseert broker voorwaarden en symboolspecificaties voor MetaTrader 5.
-Gericht op het tonen van FTMO en andere prop firm handelsvoorwaarden.
+Enhanced FTMO MT5 Broker Analyzer
+---------------------------------
+Analyzes broker specifications for MetaTrader 5 with focus on FTMO rules.
+Provides a compact summary of trading conditions and FTMO-specific limits
+that can be used to configure automated trading systems.
 """
 
 import MetaTrader5 as mt5
 import pandas as pd
 import os
 import sys
+import json
 from datetime import datetime
 from tabulate import tabulate
 
 
 class MT5BrokerAnalyzer:
-    """Compacte klasse voor het analyseren van MT5 broker voorwaarden."""
+    """Compact class for analyzing MT5 broker conditions with FTMO focus."""
 
     def __init__(self, terminal_path=None):
-        """Initialiseert de analyzer en maakt verbinding met MT5."""
+        """Initialize the analyzer and connect to MT5."""
         self.mt5_connected = False
         self.account_info = None
         self.terminal_info = None
+        self.ftmo_rules = self._load_ftmo_rules()
 
-        # Probeer verbinding te maken
+        # Try to connect
         if terminal_path and os.path.exists(terminal_path):
             self.mt5_connected = self.connect_to_mt5(terminal_path)
         else:
-            # Probeer eerst zonder pad
+            # Try without path first
             self.mt5_connected = self.connect_to_mt5()
             if not self.mt5_connected:
-                # Zoek naar standaard paden
+                # Look for standard paths
                 standard_paths = [
                     "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe",
                     "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
@@ -44,66 +47,98 @@ class MT5BrokerAnalyzer:
                             break
 
         if self.mt5_connected:
-            # Basisinformatie ophalen
+            # Get basic information
             self.terminal_info = mt5.terminal_info()._asdict()
             self.account_info = mt5.account_info()._asdict()
 
-    def connect_to_mt5(self, path=None):
-        """Maakt verbinding met MT5 terminal."""
-        print("\n=== VERBINDING MET MT5 ===")
+    def _load_ftmo_rules(self):
+        """Load FTMO rules from a predefined dictionary."""
+        # These are the key FTMO rules that need to be respected by trading bots
+        return {
+            "daily_loss_limit": 0.05,  # 5% of account balance
+            "max_loss_limit": 0.10,  # 10% of account balance
+            "profit_targets": {
+                "normal": 0.10,  # 10% profit target for normal accounts
+                "aggressive": 0.20,  # 20% profit target for aggressive accounts
+                "swing": 0.10  # 10% profit target for swing accounts
+            },
+            "min_trading_days": 10,
+            # Minimum trading days for Challenge/Verification
+            "max_daily_trading_hours": 8,
+            # Recommended maximum daily trading hours
+            "weekend_trading": False,  # No weekend trading allowed
+            "prohibited_trading": [
+                "News exploitation",  # Trading around major news events
+                "Hedging",  # Simultaneous opposite positions
+                "Symbol arbitrage",  # Exploiting price differences
+                "Gap trading",  # Trading before major gaps
+                "EA without stops",  # Trading without stop losses
+                "Overnight positions without stop loss"  # Self-explanatory
+            ],
+            "position_holding": {
+                "normal": "No restrictions",
+                "aggressive": "No restrictions",
+                "swing": "Must hold overnight"
+                # Swing accounts must hold positions overnight
+            }
+        }
 
-        # Initialiseer MT5
+    def connect_to_mt5(self, path=None):
+        """Connect to MT5 terminal."""
+        print("\n=== MT5 CONNECTION ===")
+
+        # Initialize MT5
         try:
-            # Als path None is, gebruik geen path parameter
+            # If path is None, don't use the path parameter
             if path:
                 if not mt5.initialize(path=path):
                     print(
-                        f"Initialize() mislukt, error code = {mt5.last_error()}")
+                        f"Initialize() failed, error code = {mt5.last_error()}")
                     return False
             else:
                 if not mt5.initialize():
                     print(
-                        f"Initialize() mislukt, error code = {mt5.last_error()}")
+                        f"Initialize() failed, error code = {mt5.last_error()}")
                     return False
 
-            # Controleer verbinding
+            # Check connection
             terminal = mt5.terminal_info()
             if not terminal:
                 print(
-                    f"Kon geen verbinding maken met terminal, error code = {mt5.last_error()}")
+                    f"Could not connect to terminal, error code = {mt5.last_error()}")
                 return False
 
-            # Print basisinformatie
+            # Print basic information
             terminal_dict = terminal._asdict()
             account = mt5.account_info()
 
             if account and terminal:
                 print(f"Terminal: {terminal_dict.get('name', 'Unknown')}")
                 print(f"Build: {terminal_dict.get('build', 'Unknown')}")
-                print(f"Verbonden met account: {account.login}")
+                print(f"Connected to account: {account.login}")
                 print(f"Server: {account.server}")
                 print(f"Balance: {account.balance:.2f} {account.currency}")
                 print(f"Leverage: 1:{account.leverage}")
                 return True
         except Exception as e:
-            print(f"Fout bij verbinden met MT5: {e}")
+            print(f"Error connecting to MT5: {e}")
 
         return False
 
     def print_account_details(self):
-        """Print uitgebreide accountinformatie."""
+        """Print expanded account information."""
         if not self.mt5_connected or not self.account_info:
-            print("Geen verbinding met MT5 of accountinfo beschikbaar.")
+            print("No connection to MT5 or account info available.")
             return
 
         print("\n=== ACCOUNT DETAILS ===")
 
-        # Basis accountinformatie
+        # Basic account information
         details = [
             ["Login", self.account_info['login']],
-            ["Naam", self.account_info['name']],
+            ["Name", self.account_info['name']],
             ["Server", self.account_info['server']],
-            ["Valuta", self.account_info['currency']],
+            ["Currency", self.account_info['currency']],
             ["Leverage", f"1:{self.account_info['leverage']}"],
             ["Balance",
              f"{self.account_info['balance']:.2f} {self.account_info['currency']}"],
@@ -117,7 +152,7 @@ class MT5BrokerAnalyzer:
             ["Max Orders", self.account_info['limit_orders']]
         ]
 
-        # Account type detectie (FTMO, prop firm, etc.)
+        # Account type detection (FTMO, prop firm, etc.)
         account_type = self.detect_account_type()
         details.append(["Account Type", account_type])
 
@@ -126,18 +161,18 @@ class MT5BrokerAnalyzer:
                         "Yes" if self.terminal_info.get('trade_allowed',
                                                         False) else "No"])
 
-        # Print tabel
+        # Print the table
         print(tabulate(details, tablefmt="simple"))
 
     def detect_account_type(self):
-        """Detecteert het type account (FTMO, prop firm, demo, etc.)."""
+        """Detect the account type (FTMO, prop firm, demo, etc.)."""
         if not self.account_info:
             return "Unknown"
 
         server = self.account_info['server'].lower()
         name = self.account_info['name'].lower()
 
-        # FTMO detectie
+        # FTMO detection
         if 'ftmo' in server or 'ftmo' in name:
             if 'challenge' in name:
                 return "FTMO Challenge"
@@ -148,12 +183,12 @@ class MT5BrokerAnalyzer:
             else:
                 return "FTMO Funded Account"
 
-        # Andere prop firms
+        # Other prop firms
         if any(
             x in server or x in name for x in ['prop', 'funded', 'evaluation']):
             return "Proprietary Trading Account"
 
-        # Standaard types
+        # Standard types
         if 'demo' in server:
             return "Demo Account"
         elif 'contest' in server:
@@ -162,18 +197,18 @@ class MT5BrokerAnalyzer:
         return "Live Account"
 
     def get_trading_instruments(self, categories=None):
-        """Haalt beschikbare handelsinstrumenten op."""
+        """Get available trading instruments."""
         if not self.mt5_connected:
-            print("Niet verbonden met MT5.")
+            print("Not connected to MT5.")
             return pd.DataFrame()
 
-        # Haal alle symbolen op
+        # Get all symbols
         symbols = mt5.symbols_get()
         if not symbols:
-            print(f"Geen symbolen gevonden. Error: {mt5.last_error()}")
+            print(f"No symbols found. Error: {mt5.last_error()}")
             return pd.DataFrame()
 
-        # Filter op categorieën indien opgegeven
+        # Filter by categories if specified
         if categories:
             filtered_symbols = []
             for s in symbols:
@@ -182,14 +217,14 @@ class MT5BrokerAnalyzer:
                     filtered_symbols.append(s)
             symbols = filtered_symbols
 
-        # Verzamel relevante informatie
+        # Collect relevant information
         symbols_data = []
         for s in symbols:
-            # Haal alleen essentiële gegevens op
+            # Get only essential data
             symbol_data = {
                 'name': s.name,
                 'description': s.description,
-                'path': getattr(s, 'path', 'Unknown'),  # Categorie
+                'path': getattr(s, 'path', 'Unknown'),  # Category
                 'spread': s.spread,
                 'trade_mode': self.translate_trade_mode(s.trade_mode),
                 'contract_size': s.trade_contract_size,
@@ -198,7 +233,7 @@ class MT5BrokerAnalyzer:
                 'volume_step': s.volume_step
             }
 
-            # Voeg optionele velden toe indien beschikbaar
+            # Add optional fields if available
             if hasattr(s, 'margin_initial'):
                 symbol_data['margin_initial'] = s.margin_initial
             if hasattr(s, 'currency_base'):
@@ -210,32 +245,360 @@ class MT5BrokerAnalyzer:
 
         return pd.DataFrame(symbols_data)
 
-    def get_symbol_specifications(self, symbol):
-        """Haalt gedetailleerde specificaties op voor een symbool."""
+    def print_ftmo_rules(self):
+        """Print FTMO-specific trading rules."""
+        print("\n=== FTMO TRADING RULES ===")
+
+        # Format data for tabular display
+        rules_data = [
+            ["Daily Loss Limit",
+             f"{self.ftmo_rules['daily_loss_limit'] * 100}% of account balance"],
+            ["Max Loss Limit",
+             f"{self.ftmo_rules['max_loss_limit'] * 100}% of account balance"],
+            ["Normal Profit Target",
+             f"{self.ftmo_rules['profit_targets']['normal'] * 100}% of account"],
+            ["Aggressive Profit Target",
+             f"{self.ftmo_rules['profit_targets']['aggressive'] * 100}% of account"],
+            ["Swing Profit Target",
+             f"{self.ftmo_rules['profit_targets']['swing'] * 100}% of account"],
+            ["Min Trading Days",
+             f"{self.ftmo_rules['min_trading_days']} days (Challenge/Verification)"],
+            ["Max Daily Trading",
+             f"{self.ftmo_rules['max_daily_trading_hours']} hours recommended"],
+            ["Weekend Trading", "Not allowed"],
+            ["Position Holding (Swing)", "Must hold positions overnight"]
+        ]
+
+        print(tabulate(rules_data, tablefmt="simple"))
+
+        print("\n--- Prohibited Trading Practices ---")
+        for i, practice in enumerate(self.ftmo_rules['prohibited_trading'], 1):
+            print(f"{i}. {practice}")
+
+    def print_automated_trading_requirements(self):
+        """Print requirements specific for automated trading systems."""
+        account_type = self.detect_account_type()
+        is_ftmo = 'ftmo' in account_type.lower()
+        balance = self.account_info.get('balance',
+                                        10000)  # Default if not available
+
+        print("\n=== AUTOMATED TRADING REQUIREMENTS ===")
+
+        # Risk management requirements
+        risk_data = [
+            ["Parameter", "Requirement", "Notes"],
+            ["Stop Loss", "MANDATORY", "Every position must have a stop loss"],
+            ["Max Risk Per Trade", "1-2% of balance",
+             f"${balance * 0.01:.2f} - ${balance * 0.02:.2f}"],
+            ["Daily Loss Limit",
+             f"{self.ftmo_rules['daily_loss_limit'] * 100}% of balance",
+             f"${balance * self.ftmo_rules['daily_loss_limit']:.2f}"],
+            ["Total Loss Limit",
+             f"{self.ftmo_rules['max_loss_limit'] * 100}% of balance",
+             f"${balance * self.ftmo_rules['max_loss_limit']:.2f}"],
+            ["Max Drawdown",
+             f"{self.ftmo_rules['max_loss_limit'] * 100}% from initial",
+             "Must terminate trading if reached"],
+            ["Position Sizing", "Adaptive",
+             "Based on volatility & stop distance"],
+            ["Correlation Check", "Recommended",
+             "Avoid multiple correlated positions"]
+        ]
+
+        print(tabulate(risk_data, headers="firstrow", tablefmt="grid"))
+
+        # Trading behavior requirements
+        behavior_data = [
+            ["Parameter", "Requirement"],
+            ["Trading Hours", "Regular market hours (avoid low liquidity)"],
+            ["News Trading", "Avoid major news events"],
+            ["Trading Frequency", "Monitor daily transaction limits"],
+            ["Weekend Positions", "Close or strongly secure before weekend"],
+            ["Error Handling", "Robust error recovery mechanism"],
+            ["Connection Loss", "Automatic shutdown/restart protocols"]
+        ]
+
+        print("\n--- Trading Bot Behavior ---")
+        print(tabulate(behavior_data, headers="firstrow", tablefmt="simple"))
+
+        # Specific guidance for EA operation
+        print("\n--- Trading Bot Configuration Guidelines ---")
+        if is_ftmo:
+            print("1. Implement absolute loss limits (both daily and total)")
+            print(
+                "2. Enforce strict risk management regardless of strategy confidence")
+            print(
+                "3. Include time-based position management (especially for Swing accounts)")
+            print("4. Avoid trading during major economic news events")
+            print("5. Implement defensive overnight position handling")
+            print("6. Monitor multiple timeframes to avoid overtrading")
+            print("7. Create detailed trade logs for FTMO compliance checks")
+        else:
+            print("1. Apply standard risk management principles")
+            print(
+                "2. Consider broker-specific transaction fees in calculations")
+            print("3. Adapt to account-specific margin requirements")
+            print("4. Monitor broker trading hours and restrictions")
+
+    def get_broker_limits(self):
+        """Get broker-specific limits."""
         if not self.mt5_connected:
-            print("Niet verbonden met MT5.")
+            print("Not connected to MT5.")
+            return {}
+
+        # FTMO and other prop firms usually have specific limits
+        account_type = self.detect_account_type()
+
+        # Get general limits
+        limits = {
+            "Account Type": account_type,
+            "Max Orders": self.account_info.get('limit_orders', 'Unknown'),
+            "Leverage": f"1:{self.account_info.get('leverage', 'Unknown')}",
+            "Balance": f"{self.account_info.get('balance', 0):.2f} {self.account_info.get('currency', '')}",
+        }
+
+        # Add FTMO-specific limits if available
+        if 'ftmo' in account_type.lower():
+            daily_loss = self.ftmo_rules['daily_loss_limit'] * 100
+            max_loss = self.ftmo_rules['max_loss_limit'] * 100
+
+            limits.update({
+                "Daily Loss Limit": f"{daily_loss}% of account balance (${self.account_info.get('balance', 10000) * self.ftmo_rules['daily_loss_limit']:.2f})",
+                "Max Loss Limit": f"{max_loss}% of account balance (${self.account_info.get('balance', 10000) * self.ftmo_rules['max_loss_limit']:.2f})",
+                "Profit Target": "Varies by account level (10-20%)",
+                "Min Trading Days": "10 days (for Challenge/Verification)",
+                "Scaling Plan": "Available after consistent results"
+            })
+
+        # Determine trading hours
+        limits["Trading Hours"] = "24/5 for most FX, varies by instrument"
+
+        return limits
+
+    def print_broker_limits(self):
+        """Print broker-specific limits."""
+        limits = self.get_broker_limits()
+        if not limits:
+            return
+
+        print("\n=== BROKER LIMITS AND CONDITIONS ===")
+
+        for key, value in limits.items():
+            print(f"{key}: {value}")
+
+    def get_popular_symbols(self, count=10):
+        """Get the most popular symbols sorted by spread."""
+        if not self.mt5_connected:
+            print("Not connected to MT5.")
+            return pd.DataFrame()
+
+        # Try different categories
+        try:
+            # Get symbols from different categories
+            forex = self.get_trading_instruments(categories=['forex'])
+            indices = self.get_trading_instruments(
+                categories=['index', 'indices', 'cash'])
+            commodities = self.get_trading_instruments(
+                categories=['commodit', 'metal'])
+            crypto = self.get_trading_instruments(categories=['crypto'])
+
+            # Combine and sort by spread
+            frames = []
+            if not forex.empty:
+                frames.append(forex.sort_values('spread').head(count // 2))
+            if not indices.empty:
+                frames.append(indices.sort_values('spread').head(count // 4))
+            if not commodities.empty:
+                frames.append(
+                    commodities.sort_values('spread').head(count // 8))
+            if not crypto.empty:
+                frames.append(crypto.sort_values('spread').head(count // 8))
+
+            if frames:
+                all_symbols = pd.concat(frames)
+            else:
+                # Fallback: get all symbols and filter by spread
+                all_symbols = self.get_trading_instruments()
+                all_symbols = all_symbols.sort_values('spread').head(count)
+
+            # Select relevant columns
+            columns = ['name', 'description', 'spread', 'trade_mode',
+                       'contract_size']
+            columns = [col for col in columns if col in all_symbols.columns]
+            return all_symbols[columns].head(count).sort_values('spread')
+
+        except Exception as e:
+            print(f"Error getting popular symbols: {e}")
+            # Fallback: get all symbols
+            symbols = self.get_trading_instruments()
+            if symbols.empty:
+                return pd.DataFrame()
+
+            columns = ['name', 'description', 'spread', 'trade_mode',
+                       'contract_size']
+            columns = [col for col in columns if col in symbols.columns]
+            return symbols[columns].head(count).sort_values('spread')
+
+    def print_popular_symbols(self, count=10):
+        """Print the most popular symbols with their conditions."""
+        symbols = self.get_popular_symbols(count)
+        if symbols.empty:
+            print("No symbols found.")
+            return
+
+        print(f"\n=== TOP {count} TRADING INSTRUMENTS ===")
+        print(tabulate(symbols, headers='keys', tablefmt='simple',
+                       showindex=False))
+
+    def generate_bot_config(self, output_file="trading_bot_config.json"):
+        """Generate a configuration file for a trading bot based on broker and FTMO rules."""
+        account_type = self.detect_account_type()
+        is_ftmo = 'ftmo' in account_type.lower()
+        is_challenge = 'challenge' in account_type.lower()
+        is_verification = 'verification' in account_type.lower()
+        is_funded = 'funded' in account_type.lower() and not (
+                is_challenge or is_verification)
+
+        # Default values
+        risk_per_trade = 0.01  # 1%
+        max_daily_loss = self.ftmo_rules['daily_loss_limit']
+        max_total_loss = self.ftmo_rules['max_loss_limit']
+
+        # Adjust based on account type
+        if is_ftmo:
+            if is_challenge or is_verification:
+                # Be slightly more conservative during evaluation
+                risk_per_trade = 0.01  # 1%
+            elif is_funded:
+                # Can be slightly more aggressive with funded account
+                risk_per_trade = 0.015  # 1.5%
+
+        # Top instruments
+        symbols_df = self.get_popular_symbols(15)
+        symbols_list = symbols_df[
+            'name'].tolist() if not symbols_df.empty else ["EURUSD", "GBPUSD",
+                                                           "USDJPY"]
+
+        # Create configuration
+        config = {
+            "mt5": {
+                "server": self.account_info.get('server', 'FTMO-Demo'),
+                "login": self.account_info.get('login', 0),
+                "password": "",  # Leave blank for security
+                "path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe",
+            },
+            "risk_management": {
+                "risk_per_trade": risk_per_trade,
+                "max_daily_loss": max_daily_loss,
+                "max_total_loss": max_total_loss,
+                "max_positions": 5,
+                "max_correlated_positions": 2,
+                "enforce_stop_loss": True,
+                "adaptive_position_sizing": True
+            },
+            "trading_rules": {
+                "trading_hours": {
+                    "start": 8,  # 8 AM UTC
+                    "end": 20,  # 8 PM UTC
+                    "use_time_filter": True
+                },
+                "account_type": account_type,
+                "is_ftmo": is_ftmo,
+                "weekend_trading": False,
+                "avoid_news_trading": True,
+                "min_trading_days": self.ftmo_rules['min_trading_days'] if (
+                        is_challenge or is_verification) else 0
+            },
+            "symbols": symbols_list[:5],  # Limit to top 5 by default
+            "timeframes": ["H1", "H4", "D1"],  # Default timeframes
+            "strategies": {
+                "default": "turtle",  # Default strategy
+                "turtle": {
+                    "entry_period": 20,
+                    "exit_period": 10,
+                    "atr_period": 14,
+                    "use_vol_filter": True
+                },
+                "ema": {
+                    "fast_ema": 9,
+                    "slow_ema": 21,
+                    "signal_ema": 5,
+                    "rsi_period": 14
+                }
+            }
+        }
+
+        # Save to file
+        with open(output_file, 'w') as f:
+            json.dump(config, f, indent=4)
+
+        print(f"\nTrading bot configuration saved to: {output_file}")
+        return config
+
+    def print_summary_report(self):
+        """Print a summary report of broker conditions."""
+        if not self.mt5_connected:
+            print("Not connected to MT5.")
+            return
+
+        # Header
+        print("\n" + "=" * 80)
+        print("BROKER AND FTMO TRADING CONDITIONS SUMMARY".center(80))
+        print("=" * 80)
+
+        # Account info
+        self.print_account_details()
+
+        # FTMO rules (most important for trading bots)
+        self.print_ftmo_rules()
+
+        # Automated trading requirements
+        self.print_automated_trading_requirements()
+
+        # Broker limits
+        self.print_broker_limits()
+
+        # Top trading instruments
+        self.print_popular_symbols(15)
+
+        # Symbol specifications examples
+        for symbol in ['EURUSD', 'GBPUSD', 'XAUUSD']:
+            if mt5.symbol_info(symbol):
+                self.print_symbol_specifications(symbol)
+
+        # Generate trading bot configuration
+        self.generate_bot_config()
+
+        print("\n" + "=" * 80)
+        print("END OF REPORT".center(80))
+        print("=" * 80)
+
+    def get_symbol_specifications(self, symbol):
+        """Get detailed specifications for a symbol."""
+        if not self.mt5_connected:
+            print("Not connected to MT5.")
             return None
 
-        # Haal symbool info op
+        # Get symbol info
         symbol_info = mt5.symbol_info(symbol)
         if not symbol_info:
-            print(f"Symbool '{symbol}' niet gevonden.")
+            print(f"Symbol '{symbol}' not found.")
             return None
 
-        # Haal tick info op
+        # Get tick info
         tick = mt5.symbol_info_tick(symbol)
 
-        # Maak gestructureerde weergave
+        # Create structured view
         specs = {
-            "Basis Info": {
-                "Naam": symbol_info.name,
-                "Beschrijving": symbol_info.description,
+            "Basic Info": {
+                "Name": symbol_info.name,
+                "Description": symbol_info.description,
                 "ISIN": getattr(symbol_info, "isin", ""),
-                "Categorie": getattr(symbol_info, "path", "Unknown"),
+                "Category": getattr(symbol_info, "path", "Unknown"),
                 "Base Currency": getattr(symbol_info, "currency_base", ""),
                 "Profit Currency": getattr(symbol_info, "currency_profit", "")
             },
-            "Trading Voorwaarden": {
+            "Trading Conditions": {
                 "Contract Size": symbol_info.trade_contract_size,
                 "Min Volume": symbol_info.volume_min,
                 "Max Volume": symbol_info.volume_max,
@@ -246,14 +609,14 @@ class MT5BrokerAnalyzer:
                 "Maintenance Margin": getattr(symbol_info, "margin_maintenance",
                                               "Unknown")
             },
-            "Swaps & Kosten": {
+            "Swaps & Costs": {
                 "Swap Long": symbol_info.swap_long,
                 "Swap Short": symbol_info.swap_short,
                 "Swap Rollover 3-days": symbol_info.swap_rollover3days,
                 "Swap Mode": self.translate_swap_mode(
                     getattr(symbol_info, "swap_mode", 0))
             },
-            "Prijsinformatie": {
+            "Price Information": {
                 "Digits": symbol_info.digits,
                 "Point": symbol_info.point,
                 "Tick Size": getattr(symbol_info, "trade_tick_size", "Unknown"),
@@ -264,7 +627,7 @@ class MT5BrokerAnalyzer:
                 "Spread": symbol_info.spread,
                 "Spread Float": bool(symbol_info.spread_float)
             },
-            "Order-beperkingen": {
+            "Order Restrictions": {
                 "Stops Level": getattr(symbol_info, "trade_stops_level",
                                        "Unknown"),
                 "Freeze Level": getattr(symbol_info, "trade_freeze_level",
@@ -281,158 +644,21 @@ class MT5BrokerAnalyzer:
         return specs
 
     def print_symbol_specifications(self, symbol):
-        """Print gedetailleerde specificaties voor een symbool."""
+        """Print detailed specifications for a symbol."""
         specs = self.get_symbol_specifications(symbol)
         if not specs:
             return
 
-        print(f"\n=== SPECIFICATIES VOOR {symbol} ===")
+        print(f"\n=== SPECIFICATIONS FOR {symbol} ===")
 
         for section, details in specs.items():
             print(f"\n{section}:")
             for key, value in details.items():
                 print(f"  {key}: {value}")
 
-    def get_broker_limits(self):
-        """Haalt broker-specifieke limieten op."""
-        if not self.mt5_connected:
-            print("Niet verbonden met MT5.")
-            return {}
-
-        # FTMO en andere prop firms hebben meestal specifieke limieten
-        account_type = self.detect_account_type()
-
-        # Haal algemene limieten op
-        limits = {
-            "Account Type": account_type,
-            "Max Orders": self.account_info.get('limit_orders', 'Unknown'),
-            "Leverage": f"1:{self.account_info.get('leverage', 'Unknown')}",
-            "Balance": f"{self.account_info.get('balance', 0):.2f} {self.account_info.get('currency', '')}",
-        }
-
-        # Voeg FTMO-specifieke limieten toe indien beschikbaar
-        if 'ftmo' in account_type.lower():
-            # Deze waarden zijn voorbeelden - zouden van comments/names/beschrijvingen kunnen komen
-            limits.update({
-                "Daily Loss Limit": "5% van account balance",
-                "Max Loss Limit": "10% van account balance",
-                "Profit Target": "Varieert per account niveau",
-                "Min Trading Days": "10 dagen (voor Challenge/Verification)",
-                "Scaling Plan": "Beschikbaar na consistente resultaten"
-            })
-
-        # Bepaal trading hours
-        limits["Trading Hours"] = "24/5 voor meeste FX, varieert per instrument"
-
-        return limits
-
-    def print_broker_limits(self):
-        """Print broker-specifieke limieten."""
-        limits = self.get_broker_limits()
-        if not limits:
-            return
-
-        print("\n=== BROKER LIMIETEN EN VOORWAARDEN ===")
-
-        for key, value in limits.items():
-            print(f"{key}: {value}")
-
-    def get_popular_symbols(self, count=10):
-        """Haalt de meest populaire symbolen op, gesorteerd op spread."""
-        if not self.mt5_connected:
-            print("Niet verbonden met MT5.")
-            return pd.DataFrame()
-
-        # Probeer verschillende categorieën te halen
-        try:
-            # Haal symbolen van verschillende categorieën op
-            forex = self.get_trading_instruments(categories=['forex'])
-            indices = self.get_trading_instruments(
-                categories=['index', 'indices', 'cash'])
-            commodities = self.get_trading_instruments(
-                categories=['commodit', 'metal'])
-            crypto = self.get_trading_instruments(categories=['crypto'])
-
-            # Combineer en sorteer op spread
-            frames = []
-            if not forex.empty:
-                frames.append(forex.sort_values('spread').head(count // 2))
-            if not indices.empty:
-                frames.append(indices.sort_values('spread').head(count // 4))
-            if not commodities.empty:
-                frames.append(
-                    commodities.sort_values('spread').head(count // 8))
-            if not crypto.empty:
-                frames.append(crypto.sort_values('spread').head(count // 8))
-
-            if frames:
-                all_symbols = pd.concat(frames)
-            else:
-                # Fallback: haal alle symbolen op en filter op spread
-                all_symbols = self.get_trading_instruments()
-                all_symbols = all_symbols.sort_values('spread').head(count)
-
-            # Selecteer relevante kolommen
-            columns = ['name', 'description', 'spread', 'trade_mode',
-                       'contract_size']
-            columns = [col for col in columns if col in all_symbols.columns]
-            return all_symbols[columns].head(count).sort_values('spread')
-
-        except Exception as e:
-            print(f"Fout bij ophalen populaire symbolen: {e}")
-            # Fallback: haal alle symbolen op
-            symbols = self.get_trading_instruments()
-            if symbols.empty:
-                return pd.DataFrame()
-
-            columns = ['name', 'description', 'spread', 'trade_mode',
-                       'contract_size']
-            columns = [col for col in columns if col in symbols.columns]
-            return symbols[columns].head(count).sort_values('spread')
-
-    def print_popular_symbols(self, count=10):
-        """Print de meest populaire symbolen met hun voorwaarden."""
-        symbols = self.get_popular_symbols(count)
-        if symbols.empty:
-            print("Geen symbolen gevonden.")
-            return
-
-        print(f"\n=== TOP {count} HANDELSINSTRUMENTEN ===")
-        print(tabulate(symbols, headers='keys', tablefmt='simple',
-                       showindex=False))
-
-    def print_summary_report(self):
-        """Print een samenvattend rapport van broker voorwaarden."""
-        if not self.mt5_connected:
-            print("Niet verbonden met MT5.")
-            return
-
-        # Header
-        print("\n" + "=" * 80)
-        print("BROKER VOORWAARDEN SAMENVATTING".center(80))
-        print("=" * 80)
-
-        # Account info
-        self.print_account_details()
-
-        # Broker limieten
-        self.print_broker_limits()
-
-        # Top handelsinstrumenten
-        self.print_popular_symbols(15)
-
-        # Voorbeelden van symbool specificaties voor belangrijke instrumenten
-        for symbol in ['EURUSD', 'GBPUSD', 'XAUUSD']:
-            if mt5.symbol_info(symbol):
-                self.print_symbol_specifications(symbol)
-
-        print("\n" + "=" * 80)
-        print("EINDE RAPPORT".center(80))
-        print("=" * 80)
-
-    # Vertaal-hulpfuncties voor mt5 constanten
+    # Translation helper functions for mt5 constants
     def translate_trade_mode(self, mode):
-        """Vertaalt trade mode code naar leesbare tekst."""
+        """Translate trade mode code to readable text."""
         try:
             modes = {
                 mt5.SYMBOL_TRADE_MODE_DISABLED: "Disabled",
@@ -446,7 +672,7 @@ class MT5BrokerAnalyzer:
             return f"Mode {mode}"
 
     def translate_order_mode(self, mode):
-        """Vertaalt order mode naar leesbare tekst."""
+        """Translate order mode to readable text."""
         try:
             result = []
             if mode & mt5.SYMBOL_ORDER_MARKET: result.append("Market")
@@ -460,7 +686,7 @@ class MT5BrokerAnalyzer:
             return f"Mode {mode}"
 
     def translate_filling_mode(self, mode):
-        """Vertaalt filling mode naar leesbare tekst."""
+        """Translate filling mode to readable text."""
         try:
             result = []
             if mode & mt5.SYMBOL_FILLING_FOK: result.append("Fill or Kill")
@@ -471,7 +697,7 @@ class MT5BrokerAnalyzer:
             return f"Mode {mode}"
 
     def translate_expiration_mode(self, mode):
-        """Vertaalt expiration mode naar leesbare tekst."""
+        """Translate expiration mode to readable text."""
         try:
             result = []
             if mode & mt5.SYMBOL_EXPIRATION_GTC: result.append(
@@ -484,7 +710,7 @@ class MT5BrokerAnalyzer:
             return f"Mode {mode}"
 
     def translate_swap_mode(self, mode):
-        """Vertaalt swap mode naar leesbare tekst."""
+        """Translate swap mode to readable text."""
         try:
             modes = {
                 mt5.SYMBOL_SWAP_MODE_DISABLED: "Disabled",
@@ -502,35 +728,35 @@ class MT5BrokerAnalyzer:
             return f"Mode {mode}"
 
     def shutdown(self):
-        """Sluit verbinding met MT5 af."""
+        """Close connection to MT5."""
         if self.mt5_connected:
             mt5.shutdown()
             self.mt5_connected = False
-            print("MT5 verbinding afgesloten.")
+            print("MT5 connection closed.")
 
 
 def main():
-    """Hoofdfunctie voor het uitvoeren van de broker analyse."""
-    print("MT5 Broker Analyzer v1.0")
-    print("-----------------------")
+    """Main function for running the broker analysis."""
+    print("Enhanced FTMO MT5 Broker Analyzer v2.0")
+    print("-------------------------------------")
 
-    # Terminal pad
+    # Terminal path
     terminal_path = None
     if len(sys.argv) > 1:
         terminal_path = sys.argv[1]
         print(f"Using terminal path: {terminal_path}")
 
-    # Initialiseer analyzer
+    # Initialize analyzer
     analyzer = MT5BrokerAnalyzer(terminal_path)
 
     if analyzer.mt5_connected:
-        # Print rapport
+        # Print report
         analyzer.print_summary_report()
     else:
         print(
-            "Kon geen verbinding maken met MT5. Controleer of MT5 is geïnstalleerd en gestart.")
+            "Could not connect to MT5. Make sure MT5 is installed and running.")
 
-    # Sluit verbinding
+    # Close connection
     analyzer.shutdown()
 
 
