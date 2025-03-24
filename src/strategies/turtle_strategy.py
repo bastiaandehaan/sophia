@@ -95,11 +95,11 @@ class TurtleStrategy:
                 f"Te weinig data voor berekenen indicators: {len(df)} bars")
             return df
 
-        # Donchian Channels
-        df['entry_high'] = df['high'].rolling(window=self.entry_period).max()
-        df['entry_low'] = df['low'].rolling(window=self.entry_period).min()
-        df['exit_high'] = df['high'].rolling(window=self.exit_period).max()
-        df['exit_low'] = df['low'].rolling(window=self.exit_period).min()
+        # Donchian Channels, exclusief de huidige bar
+        df['entry_high'] = df['high'].shift(1).rolling(window=self.entry_period).max()
+        df['entry_low'] = df['low'].shift(1).rolling(window=self.entry_period).min()
+        df['exit_high'] = df['high'].shift(1).rolling(window=self.exit_period).max()
+        df['exit_low'] = df['low'].shift(1).rolling(window=self.exit_period).min()
 
         # ATR berekening
         high_low = df["high"] - df["low"]
@@ -179,7 +179,7 @@ class TurtleStrategy:
         position = self.positions.get(symbol)
         current_direction = position["direction"] if position else None
 
-        # Verzamel indicators voor signaal generatie - nu op de laatste index
+        # Verzamel indicators voor signaal generatie
         if len(data) < 2:  # Zorg dat er minstens 2 rijen zijn
             return {
                 "symbol": symbol,
@@ -188,30 +188,20 @@ class TurtleStrategy:
                 "timestamp": datetime.now(),
             }
 
-        # BELANGRIJKE WIJZIGING: Gebruik 2e laatste rij voor entry/exit levels
-        # Dit is cruciaal omdat we willen controleren op een breakout boven de vorige bar's high
         indicators = {
             "current_price": data["close"].iloc[-1],
-            # Huidige prijs is laatste close
-            "prev_entry_high": data["entry_high"].iloc[-2],
-            # 2e laatste entry high
-            "prev_entry_low": data["entry_low"].iloc[-2],
-            # 2e laatste entry low
-            "prev_exit_high": data["exit_high"].iloc[-2],
-            # 2e laatste exit high
-            "prev_exit_low": data["exit_low"].iloc[-2],  # 2e laatste exit low
+            "entry_high": data["entry_high"].iloc[-1],
+            "entry_low": data["entry_low"].iloc[-1],
+            "exit_high": data["exit_high"].iloc[-1],
+            "exit_low": data["exit_low"].iloc[-1],
             "atr": data["atr"].iloc[-1] if "atr" in data.columns else 0.01,
-            "vol_filter": data["vol_filter"].iloc[
-                -1] if "vol_filter" in data.columns else True,
-            "trend_up": data["trend_up"].iloc[
-                -1] if "trend_up" in data.columns else True,
-            "trend_down": data["trend_down"].iloc[
-                -1] if "trend_down" in data.columns else True,
+            "vol_filter": data["vol_filter"].iloc[-1] if "vol_filter" in data.columns else True,
+            "trend_up": data["trend_up"].iloc[-1] if "trend_up" in data.columns else True,
+            "trend_down": data["trend_down"].iloc[-1] if "trend_down" in data.columns else True,
         }
 
         # Genereer signaal
-        return self._generate_signal(symbol, data, indicators,
-                                     current_direction)
+        return self._generate_signal(symbol, data, indicators, current_direction)
 
     def _generate_signal(
         self,
@@ -222,21 +212,12 @@ class TurtleStrategy:
     ) -> Dict[str, Any]:
         """
         Genereer een handelssignaal op basis van de berekende indicators.
-
-        Args:
-            symbol: Handelssymbool
-            data: DataFrame met historische data en indicators
-            indicators: Dictionary met indicators voor signaal generatie
-            current_direction: Huidige positierichting ('BUY', 'SELL' of None)
-
-        Returns:
-            Dictionary met signaal informatie
         """
         current_price = indicators["current_price"]
-        prev_entry_high = indicators["prev_entry_high"]
-        prev_entry_low = indicators["prev_entry_low"]
-        prev_exit_high = indicators["prev_exit_high"]
-        prev_exit_low = indicators["prev_exit_low"]
+        entry_high = indicators["entry_high"]
+        entry_low = indicators["entry_low"]
+        exit_high = indicators["exit_high"]
+        exit_low = indicators["exit_low"]
         atr_value = indicators["atr"]
         vol_filter_passed = indicators["vol_filter"]
         trend_up = indicators["trend_up"]
@@ -245,11 +226,18 @@ class TurtleStrategy:
         signal = None
         meta = {}
 
+        # Debug: print de exacte waarden die worden gebruikt
+        self.logger.debug(
+            f"Generate signal - current_price: {current_price}, entry_high: {entry_high}, "
+            f"vol_filter: {vol_filter_passed}, trend_up: {trend_up}, "
+            f"condition: {current_price > entry_high and vol_filter_passed and trend_up}"
+        )
+
         # Entry logica - als we geen positie hebben
         if current_direction is None:
             # Long entry (breakout boven entry_high)
             if (
-                current_price > prev_entry_high
+                current_price > entry_high
                 and vol_filter_passed
                 and trend_up
             ):
@@ -262,10 +250,9 @@ class TurtleStrategy:
                     "reason": "turtle_breakout_long",
                     "atr": atr_value,
                 }
-
             # Short entry (breakout onder entry_low)
             elif (
-                current_price < prev_entry_low
+                current_price < entry_low
                 and vol_filter_passed
                 and trend_down
             ):
@@ -282,19 +269,20 @@ class TurtleStrategy:
         # Exit logica - voor bestaande posities
         elif current_direction == "BUY":
             # Exit long positie als prijs onder exit_low daalt
-            if current_price < prev_exit_low:
+            if current_price < exit_low:
                 signal = "CLOSE_BUY"
                 meta = {"reason": "turtle_exit_long"}
 
         elif current_direction == "SELL":
             # Exit short positie als prijs boven exit_high stijgt
-            if current_price > prev_exit_high:
+            if current_price > exit_high:
                 signal = "CLOSE_SELL"
                 meta = {"reason": "turtle_exit_short"}
 
         if signal:
             self.logger.info(
-                f"Signaal voor {symbol}: {signal} - {meta.get('reason')}")
+                f"Signaal voor {symbol}: {signal} - {meta.get('reason')}"
+            )
 
         return {
             "symbol": symbol,
@@ -334,7 +322,8 @@ class TurtleStrategy:
             account_info = self.connector.get_account_info()
             if not account_info or "balance" not in account_info:
                 self.logger.error(
-                    f"Kon account informatie niet ophalen voor {symbol}")
+                    f"Kon account informatie niet ophalen voor {symbol}"
+                )
                 return {"success": False, "reason": "account_info_missing"}
 
             account_balance = account_info["balance"]
@@ -350,7 +339,8 @@ class TurtleStrategy:
 
             if entry_price <= 0 or stop_loss <= 0:
                 self.logger.warning(
-                    f"Ongeldige entry of stop-loss voor {symbol}")
+                    f"Ongeldige entry of stop-loss voor {symbol}"
+                )
                 return {"success": False, "reason": "invalid_price_levels"}
 
             # Bereken positiegrootte
@@ -370,11 +360,9 @@ class TurtleStrategy:
                 # Profit target = 2x risico
                 profit_multiplier = self.config.get("profit_multiplier", 2.0)
                 if signal == "BUY":
-                    take_profit = entry_price + (
-                            2 * profit_multiplier * atr_value)
+                    take_profit = entry_price + (2 * profit_multiplier * atr_value)
                 else:  # SELL
-                    take_profit = entry_price - (
-                            2 * profit_multiplier * atr_value)
+                    take_profit = entry_price - (2 * profit_multiplier * atr_value)
             else:
                 # Fallback als geen ATR beschikbaar is
                 if signal == "BUY":
@@ -453,8 +441,91 @@ class TurtleStrategy:
 
             except Exception as e:
                 self.logger.error(
-                    f"Fout bij sluiten positie voor {symbol}: {e}")
+                    f"Fout bij sluiten positie voor {symbol}: {e}"
+                )
                 return {"success": False, "reason": "close_error",
                         "error": str(e)}
 
         return {"success": False, "reason": "invalid_signal"}
+
+def check_signals(
+    self, symbol: str, data: Optional[pd.DataFrame] = None
+) -> Dict[str, Any]:
+    """
+    Controleer op handelssignalen.
+
+    Args:
+        symbol: Handelssymbool om te analyseren
+        data: Optionele DataFrame met historische data (voor tests)
+
+    Returns:
+        Dictionary met signaal informatie
+    """
+    print("DEBUG: Entering check_signals")
+    # Voor unit tests
+    setattr(self, 'testing', True)
+
+    if data is None:
+        print("DEBUG: Data is None, fetching historical data")
+        # Haal data op als deze niet is meegegeven
+        bars_needed = max(self.entry_period, self.exit_period,
+                          self.atr_period, self.trend_period) + 30
+
+        data = self.connector.get_historical_data(
+            symbol, self.config.get("timeframe", "H4"), bars_needed
+        )
+
+        if data is None or len(data) < bars_needed:
+            self.logger.error(f"Onvoldoende data beschikbaar voor {symbol}")
+            return {
+                "symbol": symbol,
+                "signal": None,
+                "meta": {},
+                "timestamp": datetime.now(),
+            }
+
+    # Controleer of handel is toegestaan op basis van handelsuren
+    if not self.check_trading_hours(symbol):
+        print("DEBUG: Trading hours check failed")
+        return {
+            "symbol": symbol,
+            "signal": None,
+            "meta": {"reason": "outside_trading_hours"},
+            "timestamp": datetime.now(),
+        }
+
+    # Bereken indicators
+    print("DEBUG: Calculating indicators")
+    data = self.calculate_indicators(data)
+
+    # Controleer of we een positie hebben
+    position = self.positions.get(symbol)
+    current_direction = position["direction"] if position else None
+    print(f"DEBUG: Current direction: {current_direction}")
+
+    # Verzamel indicators voor signaal generatie
+    if len(data) < 2:  # Zorg dat er minstens 2 rijen zijn
+        print("DEBUG: Insufficient data length")
+        return {
+            "symbol": symbol,
+            "signal": None,
+            "meta": {"reason": "insufficient_data"},
+            "timestamp": datetime.now(),
+        }
+
+    indicators = {
+        "current_price": data["close"].iloc[-1],
+        "entry_high": data["entry_high"].iloc[-1],
+        "entry_low": data["entry_low"].iloc[-1],
+        "exit_high": data["exit_high"].iloc[-1],
+        "exit_low": data["exit_low"].iloc[-1],
+        "atr": data["atr"].iloc[-1] if "atr" in data.columns else 0.01,
+        "vol_filter": data["vol_filter"].iloc[-1] if "vol_filter" in data.columns else True,
+        "trend_up": data["trend_up"].iloc[-1] if "trend_up" in data.columns else True,
+        "trend_down": data["trend_down"].iloc[-1] if "trend_down" in data.columns else True,
+    }
+    print("DEBUG: Indicators calculated:", indicators)
+
+    # Genereer signaal
+    print("DEBUG: Calling _generate_signal")
+    return self._generate_signal(symbol, data, indicators, current_direction)
