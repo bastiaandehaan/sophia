@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # src/main.py
+from typing import Dict, Any, Optional
 import argparse
+from typing import Dict, Any, Optional
 import os
+from typing import Dict, Any, Optional
 import signal
+from typing import Dict, Any, Optional
 import sys
+from typing import Dict, Any, Optional
 import time
+from typing import Dict, Any, Optional
 import traceback
 from datetime import datetime
 from typing import Dict, Any, Optional
@@ -22,10 +28,10 @@ project_root = os.path.dirname(script_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.utils import setup_logging, load_config, save_config
-from src.connector import MT5Connector
-from src.risk import RiskManager
-from src.strategy import TurtleStrategy
+from src.core.utils import setup_logging, load_config, save_config
+from src.core.connector import MT5Connector
+from src.core.risk import RiskManager
+from src.strategies.turtle_strategy import TurtleStrategy
 
 
 class SophiaTrader:
@@ -35,7 +41,7 @@ class SophiaTrader:
     """
 
     def __init__(self, config_path: Optional[str] = None,
-                 backtest_mode: bool = False):
+                 backtest_mode: bool = False) -> None:
         """
         Initialiseer de Sophia Trader applicatie.
 
@@ -192,7 +198,7 @@ class SophiaTrader:
                 )
             elif strategy_type == "ema":
                 # Importeer EMA strategie alleen indien nodig
-                from src.strategy_ema import EMAStrategy
+                from src.strategies.ema_strategy import EMAStrategy
 
                 self.strategy = EMAStrategy(
                     self.connector, self.risk_manager, strategy_config
@@ -219,7 +225,7 @@ class SophiaTrader:
             self.logger.debug(traceback.format_exc())
             return False
 
-    def run(self):
+    def run(self) -> None:
         """
         Start de hoofdtrading loop.
         """
@@ -272,7 +278,7 @@ class SophiaTrader:
 
         return 0
 
-    def _process_symbol(self, symbol: str):
+    def _process_symbol(self, symbol: str) -> None:
         """
         Verwerk een specifiek handelssymbool.
 
@@ -302,14 +308,14 @@ class SophiaTrader:
             self.logger.error(f"Fout bij verwerken signalen voor {symbol}: {e}")
             self.logger.debug(traceback.format_exc())
 
-    def _signal_handler(self, sig, frame):
+    def _signal_handler(self, sig, frame) -> None:
         """
         Handler voor SIGINT/SIGTERM signalen voor netjes afsluiten.
         """
         self.logger.info("Afsluitsignaal ontvangen, bezig met stoppen...")
         self.running = False
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         """
         Sluit resources netjes af.
         """
@@ -328,7 +334,7 @@ class SophiaTrader:
         self.logger.info("Sophia Trading System afgesloten")
 
 
-def parse_arguments():
+def parse_arguments() -> None:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Sophia Trading Framework")
 
@@ -358,19 +364,19 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Hoofdfunctie voor de Sophia trading applicatie"""
     args = parse_arguments()
 
     # Start het dashboard indien gevraagd
     if args.dashboard:
-        from src.analysis.dashboard import main as dashboard_main
+        from src.backtesting.dashboard import main as dashboard_main
 
         return dashboard_main()
 
     # Start het backtest script indien gevraagd
     if args.backtest_script:
-        from src.analysis.backtest import main as backtest_main
+        from src.backtesting.backtest import main as backtest_main
 
         return backtest_main()
 
@@ -383,3 +389,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -2,8 +2,14 @@ import os
 from datetime import datetime
 
 
-def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
-                   max_file_size=50000, summary_length=20):
+def export_project(
+    root_dir,
+    output_file,
+    extensions=None,
+    exclude_dirs=None,
+    max_file_size=50000,
+    summary_length=20,
+):
     """
     Exporteer projectstructuur en bestandsinhoud naar een tekstbestand.
 
@@ -16,31 +22,32 @@ def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
         summary_length: Aantal regels aan begin en einde van grote bestanden te tonen
     """
     if extensions is None:
-        extensions = ['.py']
+        extensions = [".py"]
     if exclude_dirs is None:
         exclude_dirs = [
-            '.idea', '.venv', '__pycache__', 'backtest_results',
-            'optimization_results', 'logs', 'coverage_html'
+            ".idea",
+            ".venv",
+            "__pycache__",
+            "backtest_results",
+            "optimization_results",
+            "logs",
+            "coverage_html",
         ]
 
     # Belangrijke bestanden die altijd volledig moeten worden opgenomen
     core_files = [
-        'main.py',
-        'connector.py',
-        'risk.py',
-        'strategy.py',
-        'strategy_ema.py',
-        'backtrader_adapter.py'
+        "main.py",
+        "connector.py",
+        "risk.py",
+        "strategy.py",
+        "strategy_ema.py",
+        "backtrader_adapter.py",
     ]
 
     # Bestanden die volledig kunnen worden overgeslagen
-    skip_files = [
-        '__init__.py',
-        'coverage_report.py',
-        'verify_sophia.py'
-    ]
+    skip_files = ["__init__.py", "coverage_report.py", "verify_sophia.py"]
 
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         # Projectbeschrijving
         f.write("===== SOPHIA TRADING FRAMEWORK PROJECT OVERVIEW =====\n")
         f.write(
@@ -55,13 +62,15 @@ def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
             dirs[:] = [d for d in dirs if d not in exclude_dirs]
 
             # Filter relevante bestanden
-            relevant_files = [file for file in files if
-                              any(file.endswith(ext) for ext in extensions)]
+            relevant_files = [
+                file for file in files if
+                any(file.endswith(ext) for ext in extensions)
+            ]
 
             if relevant_files:
                 rel_path = os.path.relpath(root, root_dir)
-                if rel_path == '.':
-                    rel_path = 'root'
+                if rel_path == ".":
+                    rel_path = "root"
                 structure[rel_path] = relevant_files
 
         # Gestructureerde weergave van mappen en bestanden
@@ -87,7 +96,7 @@ def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
                     continue
 
                 file_path = os.path.join(root_dir, directory, file)
-                if directory == 'root':
+                if directory == "root":
                     file_path = os.path.join(root_dir, file)
 
                 try:
@@ -96,14 +105,15 @@ def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
 
                     # Volledig exporteren voor kernbestanden of kleine bestanden
                     is_core_file = any(
-                        core_name in file_path for core_name in core_files)
+                        core_name in file_path for core_name in core_files
+                    )
                     if is_core_file or file_size <= max_file_size:
                         processed_files += 1
                         f.write(
                             f"\n===== {file_path} [{file_size} bytes] =====\n")
 
-                        with open(file_path, 'r',
-                                  encoding='utf-8') as file_content:
+                        with open(file_path, "r",
+                                  encoding="utf-8") as file_content:
                             content = file_content.read()
                             f.write(content)
                             f.write("\n")
@@ -111,30 +121,36 @@ def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
                         # Voor grote bestanden, toon alleen een samenvatting
                         large_files += 1
                         f.write(
-                            f"\n===== {file_path} [{file_size} bytes - SUMMARY] =====\n")
+                            f"\n===== {file_path} [{file_size} bytes - SUMMARY] =====\n"
+                        )
 
-                        with open(file_path, 'r',
-                                  encoding='utf-8') as file_content:
+                        with open(file_path, "r",
+                                  encoding="utf-8") as file_content:
                             lines = file_content.readlines()
 
                             # Aantal modules/klassen/functies tellen
-                            class_count = sum(1 for line in lines if
-                                              line.strip().startswith('class '))
-                            def_count = sum(1 for line in lines if
-                                            line.strip().startswith('def '))
+                            class_count = sum(
+                                1 for line in lines if
+                                line.strip().startswith("class ")
+                            )
+                            def_count = sum(
+                                1 for line in lines if
+                                line.strip().startswith("def ")
+                            )
 
                             f.write(
-                                f"File contains {len(lines)} lines, {class_count} classes, {def_count} functions\n\n")
+                                f"File contains {len(lines)} lines, {class_count} classes, {def_count} functions\n\n"
+                            )
 
                             # Begin van het bestand
                             f.write("--- BEGINNING OF FILE ---\n")
-                            f.write(''.join(lines[:summary_length]))
+                            f.write("".join(lines[:summary_length]))
                             f.write("\n[...]\n")
 
                             # Einde van het bestand
                             if len(lines) > summary_length * 2:
                                 f.write("--- END OF FILE ---\n")
-                                f.write(''.join(lines[-summary_length:]))
+                                f.write("".join(lines[-summary_length:]))
 
                 except Exception as e:
                     f.write(f"\n===== {file_path} =====\n")
@@ -146,7 +162,8 @@ def export_project(root_dir, output_file, extensions=None, exclude_dirs=None,
         f.write(f"Files summarized: {large_files}\n")
         f.write(f"Files skipped: {skipped_files}\n")
         f.write(
-            f"Total files processed: {processed_files + large_files + skipped_files}\n")
+            f"Total files processed: {processed_files + large_files + skipped_files}\n"
+        )
 
     return processed_files, large_files, skipped_files
 
@@ -157,9 +174,9 @@ if __name__ == "__main__":
     processed, summarized, skipped = export_project(
         project_root,
         output_file,
-        extensions=['.py'],
+        extensions=[".py"],
         max_file_size=30000,  # 30KB maximum voor volledige export
-        summary_length=15  # 15 regels aan begin en einde
+        summary_length=15,  # 15 regels aan begin en einde
     )
 
     print(f"Project export voltooid naar: {output_file}")

@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import pandas as pd
 import pytest
 
-from src.strategy import TurtleStrategy
+from src.strategies.turtle_strategy import TurtleStrategy
 
 
 @pytest.mark.integration

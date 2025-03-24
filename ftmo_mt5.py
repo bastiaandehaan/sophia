@@ -9,12 +9,12 @@ Provides a compact summary of trading conditions and FTMO-specific limits
 that can be used to configure automated trading systems.
 """
 
-import MetaTrader5 as mt5
-import pandas as pd
+import json
 import os
 import sys
-import json
-from datetime import datetime
+
+import MetaTrader5 as mt5
+import pandas as pd
 from tabulate import tabulate
 
 
@@ -457,7 +457,7 @@ class MT5BrokerAnalyzer:
         is_challenge = 'challenge' in account_type.lower()
         is_verification = 'verification' in account_type.lower()
         is_funded = 'funded' in account_type.lower() and not (
-                is_challenge or is_verification)
+            is_challenge or is_verification)
 
         # Default values
         risk_per_trade = 0.01  # 1%
@@ -507,7 +507,7 @@ class MT5BrokerAnalyzer:
                 "weekend_trading": False,
                 "avoid_news_trading": True,
                 "min_trading_days": self.ftmo_rules['min_trading_days'] if (
-                        is_challenge or is_verification) else 0
+                    is_challenge or is_verification) else 0
             },
             "symbols": symbols_list[:5],  # Limit to top 5 by default
             "timeframes": ["H1", "H4", "D1"],  # Default timeframes
