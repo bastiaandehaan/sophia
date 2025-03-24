@@ -1,7 +1,7 @@
 # tests/unit/test_risk.py
 import pytest
 
-from src.risk import RiskManager
+from src.core.risk import RiskManager
 
 
 @pytest.fixture

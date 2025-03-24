@@ -65,7 +65,10 @@
             "spread_variable": true,
             "stops_level": 0,
             "freeze_level": 0,
-            "filling_modes": ["Fill or Kill", "Immediate or Cancel"],
+            "filling_modes": [
+                "Fill or Kill",
+                "Immediate or Cancel"
+            ],
             "avg_tick_volume": 2213,
             "avg_hl_range": 0.001545
         },
@@ -96,12 +99,30 @@
     },
     "market_hours": {
         "forex": {
-            "monday": ["00:00", "23:59"],
-            "tuesday": ["00:00", "23:59"],
-            "wednesday": ["00:00", "23:59"],
-            "thursday": ["00:00", "23:59"],
-            "friday": ["00:00", "23:59"],
-            "sunday": ["22:00", "23:59"]
+            "monday": [
+                "00:00",
+                "23:59"
+            ],
+            "tuesday": [
+                "00:00",
+                "23:59"
+            ],
+            "wednesday": [
+                "00:00",
+                "23:59"
+            ],
+            "thursday": [
+                "00:00",
+                "23:59"
+            ],
+            "friday": [
+                "00:00",
+                "23:59"
+            ],
+            "sunday": [
+                "22:00",
+                "23:59"
+            ]
         }
     },
     "broker_settings": {

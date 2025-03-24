@@ -18,9 +18,9 @@ project_root = os.path.dirname(script_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.analysis.backtrader_adapter import BacktraderAdapter
-from src.analysis.strategies.turtle_bt import TurtleStrategy
-from src.analysis.strategies.ema_bt import EMAStrategy
+from src.backtesting.backtrader_adapter import BacktraderAdapter
+from src.backtesting.strategies.turtle_bt import TurtleStrategy
+from src.backtesting.strategies.ema_bt import EMAStrategy
 
 
 def parse_arguments():

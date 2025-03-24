@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from src.connector import MT5Connector
+from src.core.connector import MT5Connector
 
 
 @pytest.fixture
