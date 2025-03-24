@@ -2,7 +2,7 @@
 # src/risk.py
 import datetime
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 
 class RiskManager:

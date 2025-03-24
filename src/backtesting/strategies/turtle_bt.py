@@ -7,7 +7,6 @@ met een volatiliteitsfilter.
 """
 
 import logging
-from typing import Dict, Any, Optional
 
 import backtrader as bt
 import backtrader.indicators as btind

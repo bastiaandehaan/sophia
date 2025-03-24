@@ -3,6 +3,7 @@
 import os
 
 import pytest
+
 from src.main import SophiaTrader
 
 

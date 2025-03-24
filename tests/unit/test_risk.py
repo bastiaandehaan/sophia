@@ -87,3 +87,7 @@ def test_custom_risk_percentage():
 
     # Zou 5x groter moeten zijn dan met 1% risico
     assert position_size >= 0.5  # 5x de normale ~0.2 lots
+
+def test_is_trading_allowed_exceeds_loss(risk_manager):
+    risk_manager.daily_trades = [{"profit": -600}]  # Overschrijdt 5% van 10k
+    assert risk_manager.is_trading_allowed(10000) is False

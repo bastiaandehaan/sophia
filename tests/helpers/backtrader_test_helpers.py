@@ -1,7 +1,8 @@
-import backtrader as bt
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
+
+import backtrader as bt
+import numpy as np
+import pandas as pd
 
 
 class BacktraderTestHelper:

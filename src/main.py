@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # src/main.py
-from typing import Dict, Any, Optional
 import argparse
-from typing import Dict, Any, Optional
 import os
-from typing import Dict, Any, Optional
 import signal
-from typing import Dict, Any, Optional
 import sys
-from typing import Dict, Any, Optional
 import time
-from typing import Dict, Any, Optional
 import traceback
 from datetime import datetime
 from typing import Dict, Any, Optional

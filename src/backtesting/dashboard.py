@@ -196,7 +196,8 @@ def generate_demo_data(symbol: str, from_date: str,
     end_date = pd.to_datetime(to_date)
 
     # Genereer tijdreeks
-    date_range = pd.date_range(start=start_date, end=end_date, freq="H")
+    date_range = pd.date_range(start=start_date, end=end_date,
+                               freq="h")  # Correcte aanroep
     n = len(date_range)
 
     # Genereer prijzen met realistische bewegingen

@@ -4,13 +4,13 @@
 Unit tests for the Sophia Dashboard module.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
-import pandas as pd
-import numpy as np
-import os
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
+
+import numpy as np
+import pandas as pd
+import pytest
 
 # Ensure project root is in path
 project_root = Path(__file__).parent.parent.parent
