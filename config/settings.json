@@ -1,0 +1,144 @@
+{
+    "mt5": {
+        "mt5_path": "C:\\Program Files\\FTMO Global Markets MT5 Terminal\\terminal64.exe",
+        "login": 1520533067,
+        "password": "UP7d??y4Wg",
+        "server": "FTMO-Demo2"
+    },
+    "risk": {
+        "risk_per_trade": 0.01,
+        "max_daily_loss": 0.05,
+        "max_total_loss": 0.1,
+        "max_positions": 5,
+        "max_correlated": 2,
+        "enforce_stop_loss": true,
+        "adaptive_position_sizing": true
+    },
+    "symbols": [
+        "EURUSD",
+        "GBPUSD",
+        "USDJPY",
+        "AUDUSD",
+        "USDCAD"
+    ],
+    "timeframe": "H4",
+    "interval": 300,
+    "trading_rules": {
+        "trading_hours": {
+            "start": 8,
+            "end": 20,
+            "use_time_filter": true
+        },
+        "account_type": "FTMO Free Trial",
+        "is_ftmo": true,
+        "weekend_trading": false,
+        "avoid_news_trading": true
+    },
+    "strategies": {
+        "default": "turtle",
+        "turtle": {
+            "entry_period": 20,
+            "exit_period": 10,
+            "atr_period": 14,
+            "use_vol_filter": true
+        },
+        "ema": {
+            "fast_ema": 9,
+            "slow_ema": 21,
+            "signal_ema": 5,
+            "rsi_period": 14
+        }
+    },
+    "symbol_details": {
+        "EURUSD": {
+            "description": "Euro vs United States Dollar",
+            "base_currency": "EUR",
+            "profit_currency": "USD",
+            "contract_size": 100000.0,
+            "min_lot": 0.01,
+            "max_lot": 50.0,
+            "lot_step": 0.01,
+            "swap_long": -10.92,
+            "swap_short": 1.68,
+            "swap_rollover_day": 3,
+            "spread_points": 9,
+            "spread_variable": true,
+            "stops_level": 0,
+            "freeze_level": 0,
+            "filling_modes": [
+                "Fill or Kill",
+                "Immediate or Cancel"
+            ],
+            "avg_tick_volume": 2213,
+            "avg_hl_range": 0.001545
+        },
+        "USDJPY": {
+            "description": "US Dollar vs Japanese Yen",
+            "base_currency": "USD",
+            "profit_currency": "JPY",
+            "contract_size": 100000.0,
+            "min_lot": 0.01,
+            "max_lot": 50.0,
+            "lot_step": 0.01,
+            "spread_points": 17,
+            "avg_tick_volume": 3367,
+            "avg_hl_range": 0.260123
+        },
+        "GBPUSD": {
+            "description": "Great Britain Pound vs US Dollar",
+            "base_currency": "GBP",
+            "profit_currency": "USD",
+            "contract_size": 100000.0,
+            "min_lot": 0.01,
+            "max_lot": 50.0,
+            "lot_step": 0.01,
+            "spread_points": 15,
+            "avg_tick_volume": 2456,
+            "avg_hl_range": 0.001519
+        }
+    },
+    "market_hours": {
+        "forex": {
+            "monday": [
+                "00:00",
+                "23:59"
+            ],
+            "tuesday": [
+                "00:00",
+                "23:59"
+            ],
+            "wednesday": [
+                "00:00",
+                "23:59"
+            ],
+            "thursday": [
+                "00:00",
+                "23:59"
+            ],
+            "friday": [
+                "00:00",
+                "23:59"
+            ],
+            "sunday": [
+                "22:00",
+                "23:59"
+            ]
+        }
+    },
+    "broker_settings": {
+        "name": "FTMO-Demo2",
+        "balance": 79997.56,
+        "leverage": 100,
+        "margin_calculation": "Forex",
+        "hedge_margin": 200000.0,
+        "time_zone": "UTC",
+        "order_capabilities": {
+            "market": true,
+            "limit": true,
+            "stop": true,
+            "stop_limit": true,
+            "stop_loss": true,
+            "take_profit": true
+        }
+    }
+}

@@ -1,0 +1,1164 @@
+{
+    "strategy": "turtle",
+    "timeframe": "H4",
+    "start_date": "2024-03-22",
+    "end_date": "2025-03-22",
+    "symbols": [
+        "EURUSD"
+    ],
+    "metric": "sharpe",
+    "results": [
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 20,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 23.526158956131372,
+                "max_drawdown_pct": 0.02150785315290929,
+                "max_drawdown_len": 579,
+                "total_trades": 6,
+                "won_trades": 3,
+                "lost_trades": 3,
+                "win_rate": 50.0,
+                "annual_return": 2.5834259804251944e-05,
+                "total_return_pct": 0.040146439735807525,
+                "final_value": 10004.015449949746,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 20,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 9.523015049092901,
+                "max_drawdown_pct": 0.021507853152944508,
+                "max_drawdown_len": 555,
+                "total_trades": 6,
+                "won_trades": 3,
+                "lost_trades": 3,
+                "win_rate": 50.0,
+                "annual_return": 2.7638207706107253e-05,
+                "total_return_pct": 0.042949774775290675,
+                "final_value": 10004.295899951168,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 10,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 9.035812099370473,
+                "max_drawdown_pct": 0.03286491069783496,
+                "max_drawdown_len": 585,
+                "total_trades": 9,
+                "won_trades": 4,
+                "lost_trades": 5,
+                "win_rate": 44.44444444444444,
+                "annual_return": 5.24885086305812e-06,
+                "total_return_pct": 0.008156714241192319,
+                "final_value": 10000.815704691016,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 20,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 7.312536841800085,
+                "max_drawdown_pct": 0.021507853152940615,
+                "max_drawdown_len": 555,
+                "total_trades": 6,
+                "won_trades": 3,
+                "lost_trades": 3,
+                "win_rate": 50.0,
+                "annual_return": 2.8654359010225845e-05,
+                "total_return_pct": 0.04452887390189096,
+                "final_value": 10004.453878947665,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 15,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 3.1559475347588686,
+                "max_drawdown_pct": 0.026727543599023445,
+                "max_drawdown_len": 582,
+                "total_trades": 8,
+                "won_trades": 3,
+                "lost_trades": 5,
+                "win_rate": 37.5,
+                "annual_return": 1.013826574232378e-05,
+                "total_return_pct": 0.015754864963571154,
+                "final_value": 10001.57561061076,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 10,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.9611273935442926,
+                "max_drawdown_pct": 0.0328649106978293,
+                "max_drawdown_len": 579,
+                "total_trades": 9,
+                "won_trades": 4,
+                "lost_trades": 5,
+                "win_rate": 44.44444444444444,
+                "annual_return": 7.04812856698811e-06,
+                "total_return_pct": 0.010952791793099522,
+                "final_value": 10001.095339163323,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 20,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.773876673903454,
+                "max_drawdown_pct": 0.021507853152946822,
+                "max_drawdown_len": 575,
+                "total_trades": 6,
+                "won_trades": 3,
+                "lost_trades": 3,
+                "win_rate": 50.0,
+                "annual_return": 2.0875971747861268e-05,
+                "total_return_pct": 0.032441260096176414,
+                "final_value": 10003.244652284204,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 20,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.430854599349255,
+                "max_drawdown_pct": 0.02150785315293631,
+                "max_drawdown_len": 555,
+                "total_trades": 6,
+                "won_trades": 3,
+                "lost_trades": 3,
+                "win_rate": 50.0,
+                "annual_return": 2.2679919649716024e-05,
+                "total_return_pct": 0.035244595135658696,
+                "final_value": 10003.525080677282,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 10,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.374361719338915,
+                "max_drawdown_pct": 0.03286491069784373,
+                "max_drawdown_len": 579,
+                "total_trades": 9,
+                "won_trades": 4,
+                "lost_trades": 5,
+                "win_rate": 44.44444444444444,
+                "annual_return": 8.064279871115127e-06,
+                "total_return_pct": 0.012531890919712907,
+                "final_value": 10001.253267619397,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 10,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.3695435272294065,
+                "max_drawdown_pct": 0.035782835352037884,
+                "max_drawdown_len": 582,
+                "total_trades": 9,
+                "won_trades": 4,
+                "lost_trades": 5,
+                "win_rate": 44.44444444444444,
+                "annual_return": 1.1316656620085488e-05,
+                "total_return_pct": 0.01758608438761285,
+                "final_value": 10001.758763083008,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 20,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.290303447758088,
+                "max_drawdown_pct": 0.021507853152946586,
+                "max_drawdown_len": 555,
+                "total_trades": 6,
+                "won_trades": 3,
+                "lost_trades": 3,
+                "win_rate": 50.0,
+                "annual_return": 2.3696070953876578e-05,
+                "total_return_pct": 0.0368236942623242,
+                "final_value": 10003.68304750169,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 15,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 2.1572489581904124,
+                "max_drawdown_pct": 0.02672754359898716,
+                "max_drawdown_len": 582,
+                "total_trades": 8,
+                "won_trades": 3,
+                "lost_trades": 5,
+                "win_rate": 37.5,
+                "annual_return": 9.122114438211977e-06,
+                "total_return_pct": 0.014175765836981413,
+                "final_value": 10001.417677064614,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 10,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.7783967319272596,
+                "max_drawdown_pct": 0.035782835351950516,
+                "max_drawdown_len": 582,
+                "total_trades": 9,
+                "won_trades": 4,
+                "lost_trades": 5,
+                "win_rate": 44.44444444444444,
+                "annual_return": 1.030050531600763e-05,
+                "total_return_pct": 0.016006985261075857,
+                "final_value": 10001.600826644732,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 15,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.213128968186676,
+                "max_drawdown_pct": 0.026727543599047554,
+                "max_drawdown_len": 585,
+                "total_trades": 8,
+                "won_trades": 3,
+                "lost_trades": 5,
+                "win_rate": 37.5,
+                "annual_return": 7.318166536320707e-06,
+                "total_return_pct": 0.011372430797442379,
+                "final_value": 10001.137307748286,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 15,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.1765170519826509,
+                "max_drawdown_pct": 0.029407860945845982,
+                "max_drawdown_len": 584,
+                "total_trades": 8,
+                "won_trades": 3,
+                "lost_trades": 5,
+                "win_rate": 37.5,
+                "annual_return": 1.3371283617425784e-05,
+                "total_return_pct": 0.020778974741479668,
+                "final_value": 10002.078113371997,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 20,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.1421425668946497,
+                "max_drawdown_pct": 0.0420890278076668,
+                "max_drawdown_len": 579,
+                "total_trades": 7,
+                "won_trades": 3,
+                "lost_trades": 4,
+                "win_rate": 42.857142857142854,
+                "annual_return": 1.4359765477366145e-05,
+                "total_return_pct": 0.022315075551826987,
+                "final_value": 10002.231756555002,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 20,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.1243048522899666,
+                "max_drawdown_pct": 0.042089027807695766,
+                "max_drawdown_len": 555,
+                "total_trades": 7,
+                "won_trades": 3,
+                "lost_trades": 4,
+                "win_rate": 42.857142857142854,
+                "annual_return": 1.616371337924573e-05,
+                "total_return_pct": 0.02511841059134786,
+                "final_value": 10002.512156552824,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 10,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.1198810980020018,
+                "max_drawdown_pct": 0.03578283535197971,
+                "max_drawdown_len": 585,
+                "total_trades": 9,
+                "won_trades": 4,
+                "lost_trades": 5,
+                "win_rate": 44.44444444444444,
+                "annual_return": 8.501227612014188e-06,
+                "total_return_pct": 0.013210907709070047,
+                "final_value": 10001.321178038792,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 20,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 1.1160978749934156,
+                "max_drawdown_pct": 0.04208902780769017,
+                "max_drawdown_len": 555,
+                "total_trades": 7,
+                "won_trades": 3,
+                "lost_trades": 4,
+                "win_rate": 42.857142857142854,
+                "annual_return": 1.7179864683344978e-05,
+                "total_return_pct": 0.026697509717918094,
+                "final_value": 10002.670107382022,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 15,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 0.9979004470900935,
+                "max_drawdown_pct": 0.02940786094585108,
+                "max_drawdown_len": 584,
+                "total_trades": 8,
+                "won_trades": 3,
+                "lost_trades": 5,
+                "win_rate": 37.5,
+                "annual_return": 1.2355132313322785e-05,
+                "total_return_pct": 0.01919987561490361,
+                "final_value": 10001.920171890899,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 15,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 0.7438474398920311,
+                "max_drawdown_pct": 0.02940786094586627,
+                "max_drawdown_len": 598,
+                "total_trades": 8,
+                "won_trades": 3,
+                "lost_trades": 5,
+                "win_rate": 37.5,
+                "annual_return": 1.0551184411471888e-05,
+                "total_return_pct": 0.016396540575427315,
+                "final_value": 10001.63978848816,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 20,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 0.3320241260659813,
+                "max_drawdown_pct": 0.034001601696833986,
+                "max_drawdown_len": 739,
+                "total_trades": 7,
+                "won_trades": 2,
+                "lost_trades": 5,
+                "win_rate": 28.57142857142857,
+                "annual_return": 6.164936024467842e-06,
+                "total_return_pct": 0.009580310582023025,
+                "final_value": 10000.958076950843,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 20,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 0.07390939999598842,
+                "max_drawdown_pct": 0.03285711473880622,
+                "max_drawdown_len": 739,
+                "total_trades": 7,
+                "won_trades": 2,
+                "lost_trades": 5,
+                "win_rate": 28.57142857142857,
+                "annual_return": 9.182678010069976e-07,
+                "total_return_pct": 0.0014269881627648744,
+                "final_value": 10000.142699834429,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 15,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 0.008148270849410744,
+                "max_drawdown_pct": 0.044383306641964354,
+                "max_drawdown_len": 686,
+                "total_trades": 11,
+                "won_trades": 3,
+                "lost_trades": 8,
+                "win_rate": 27.27272727272727,
+                "annual_return": 1.0208953010090038e-07,
+                "total_return_pct": 0.0001586471297767992,
+                "final_value": 10000.015864725563,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 10,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": 0.0011642969749965696,
+                "max_drawdown_pct": 0.05153582802760296,
+                "max_drawdown_len": 608,
+                "total_trades": 12,
+                "won_trades": 4,
+                "lost_trades": 8,
+                "win_rate": 33.33333333333333,
+                "annual_return": 5.242089846099265e-09,
+                "total_return_pct": 8.146207620838258e-06,
+                "final_value": 10000.000814620795,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 5,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.24662944165757875,
+                "max_drawdown_pct": 0.035779808071024266,
+                "max_drawdown_len": 1241,
+                "total_trades": 11,
+                "won_trades": 4,
+                "lost_trades": 7,
+                "win_rate": 36.36363636363637,
+                "annual_return": -5.434615868857871e-06,
+                "total_return_pct": -0.008445393060205132,
+                "final_value": 9999.155496355308,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 5,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.2733471598158116,
+                "max_drawdown_pct": 0.046636205247477885,
+                "max_drawdown_len": 1241,
+                "total_trades": 14,
+                "won_trades": 5,
+                "lost_trades": 9,
+                "win_rate": 35.714285714285715,
+                "annual_return": -8.29504952890246e-06,
+                "total_return_pct": -0.012890506967914422,
+                "final_value": 9998.711032382223,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 5,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.2798437286752623,
+                "max_drawdown_pct": 0.03576808517727467,
+                "max_drawdown_len": 1241,
+                "total_trades": 11,
+                "won_trades": 4,
+                "lost_trades": 7,
+                "win_rate": 36.36363636363637,
+                "annual_return": -6.450767173017262e-06,
+                "total_return_pct": -0.010024492186868827,
+                "final_value": 9998.997601024856,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 5,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.33277400558446607,
+                "max_drawdown_pct": 0.038608438545175414,
+                "max_drawdown_len": 1241,
+                "total_trades": 11,
+                "won_trades": 4,
+                "lost_trades": 7,
+                "win_rate": 36.36363636363637,
+                "annual_return": -8.279216361634456e-06,
+                "total_return_pct": -0.012865902225979947,
+                "final_value": 9998.713492539573,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 5,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.337755525008512,
+                "max_drawdown_pct": 0.048262259037309505,
+                "max_drawdown_len": 1241,
+                "total_trades": 15,
+                "won_trades": 5,
+                "lost_trades": 10,
+                "win_rate": 33.33333333333333,
+                "annual_return": -8.318215224206383e-06,
+                "total_return_pct": -0.012926506458416719,
+                "final_value": 9998.707432897843,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 5,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.3639983950081868,
+                "max_drawdown_pct": 0.04825053760733871,
+                "max_drawdown_len": 1241,
+                "total_trades": 15,
+                "won_trades": 5,
+                "lost_trades": 10,
+                "win_rate": 33.33333333333333,
+                "annual_return": -9.33436652834397e-06,
+                "total_return_pct": -0.01450560558504653,
+                "final_value": 9998.549544642705,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 15,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.38029076097467207,
+                "max_drawdown_pct": 0.05122220474667518,
+                "max_drawdown_len": 1241,
+                "total_trades": 9,
+                "won_trades": 2,
+                "lost_trades": 7,
+                "win_rate": 22.22222222222222,
+                "annual_return": -1.5188200931128206e-05,
+                "total_return_pct": -0.023602464246973234,
+                "final_value": 9997.640032091549,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 5,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.5293324747162771,
+                "max_drawdown_pct": 0.07722240236346917,
+                "max_drawdown_len": 1241,
+                "total_trades": 17,
+                "won_trades": 5,
+                "lost_trades": 12,
+                "win_rate": 29.411764705882355,
+                "annual_return": -2.6675232738535493e-05,
+                "total_return_pct": -0.04145331167568416,
+                "final_value": 9995.855527902248,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 10,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.5442795343426181,
+                "max_drawdown_pct": 0.057156086004346386,
+                "max_drawdown_len": 1241,
+                "total_trades": 10,
+                "won_trades": 3,
+                "lost_trades": 7,
+                "win_rate": 30.0,
+                "annual_return": -1.922703865155327e-05,
+                "total_return_pct": -0.02987881806451378,
+                "final_value": 9997.01256452098,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 15,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.5834952918431123,
+                "max_drawdown_pct": 0.04739815178250339,
+                "max_drawdown_len": 1241,
+                "total_trades": 9,
+                "won_trades": 2,
+                "lost_trades": 7,
+                "win_rate": 22.22222222222222,
+                "annual_return": -1.8709598973363204e-05,
+                "total_return_pct": -0.02907471680460642,
+                "final_value": 9997.092950948158,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 10,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.5938785724641716,
+                "max_drawdown_pct": 0.058333318856992264,
+                "max_drawdown_len": 598,
+                "total_trades": 12,
+                "won_trades": 3,
+                "lost_trades": 9,
+                "win_rate": 25.0,
+                "annual_return": -1.5559228899386225e-06,
+                "total_return_pct": -0.0024179041709646194,
+                "final_value": 9999.75821250601,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 5,
+                "atr_period": 14,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.6235032062504535,
+                "max_drawdown_pct": 0.070490981192869,
+                "max_drawdown_len": 1241,
+                "total_trades": 13,
+                "won_trades": 3,
+                "lost_trades": 10,
+                "win_rate": 23.076923076923077,
+                "annual_return": -2.7492599914562018e-05,
+                "total_return_pct": -0.042723500267229375,
+                "final_value": 9995.728562492057,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 5,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.6274049916532931,
+                "max_drawdown_pct": 0.03128663012163698,
+                "max_drawdown_len": 1241,
+                "total_trades": 11,
+                "won_trades": 4,
+                "lost_trades": 7,
+                "win_rate": 36.36363636363637,
+                "annual_return": -8.696980244913724e-06,
+                "total_return_pct": -0.013515107300595927,
+                "final_value": 9998.648580594889,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 5,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.6528513556855022,
+                "max_drawdown_pct": 0.0312749067008342,
+                "max_drawdown_len": 1241,
+                "total_trades": 11,
+                "won_trades": 4,
+                "lost_trades": 7,
+                "win_rate": 36.36363636363637,
+                "annual_return": -9.713131549008621e-06,
+                "total_return_pct": -0.015094206427159399,
+                "final_value": 9998.490693269086,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 40,
+                "exit_period": 5,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.6908425805094133,
+                "max_drawdown_pct": 0.034115387736672054,
+                "max_drawdown_len": 1241,
+                "total_trades": 11,
+                "won_trades": 4,
+                "lost_trades": 7,
+                "win_rate": 36.36363636363637,
+                "annual_return": -1.1541580737690745e-05,
+                "total_return_pct": -0.01793561646637142,
+                "final_value": 9998.206599186917,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 20,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.7481468419000066,
+                "max_drawdown_pct": 0.042089027807694954,
+                "max_drawdown_len": 739,
+                "total_trades": 8,
+                "won_trades": 2,
+                "lost_trades": 6,
+                "win_rate": 25.0,
+                "annual_return": -5.309558302408433e-06,
+                "total_return_pct": -0.008251053601942705,
+                "final_value": 9999.174928678813,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 10,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.8298250826513146,
+                "max_drawdown_pct": 0.053094529961512454,
+                "max_drawdown_len": 1241,
+                "total_trades": 10,
+                "won_trades": 3,
+                "lost_trades": 7,
+                "win_rate": 30.0,
+                "annual_return": -2.276779556765247e-05,
+                "total_return_pct": -0.035381154312131936,
+                "final_value": 9996.462510408015,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 5,
+                "atr_period": 20,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.8663440206065637,
+                "max_drawdown_pct": 0.06978643305539245,
+                "max_drawdown_len": 1241,
+                "total_trades": 14,
+                "won_trades": 3,
+                "lost_trades": 11,
+                "win_rate": 21.428571428571427,
+                "annual_return": -3.3484155092202515e-05,
+                "total_return_pct": -0.0520343770132827,
+                "final_value": 9994.797915852087,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 10,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -0.8979642037027294,
+                "max_drawdown_pct": 0.07820722976952578,
+                "max_drawdown_len": 1241,
+                "total_trades": 13,
+                "won_trades": 3,
+                "lost_trades": 10,
+                "win_rate": 23.076923076923077,
+                "annual_return": -2.8398651630256547e-05,
+                "total_return_pct": -0.044131504633418674,
+                "final_value": 9995.587823188274,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 10,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -1.6037932781028585,
+                "max_drawdown_pct": 0.058333318857013726,
+                "max_drawdown_len": 598,
+                "total_trades": 12,
+                "won_trades": 3,
+                "lost_trades": 9,
+                "win_rate": 25.0,
+                "annual_return": -2.5720741940685755e-06,
+                "total_return_pct": -0.003997003297582566,
+                "final_value": 9999.600307658153,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 10,
+                "exit_period": 15,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -1.734415222411813,
+                "max_drawdown_pct": 0.0934237072650458,
+                "max_drawdown_len": 1241,
+                "total_trades": 13,
+                "won_trades": 2,
+                "lost_trades": 11,
+                "win_rate": 15.384615384615385,
+                "annual_return": -4.0581275795477225e-05,
+                "total_return_pct": -0.06306330258617161,
+                "final_value": 9993.695657813512,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 20,
+                "exit_period": 15,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -2.330186121731019,
+                "max_drawdown_pct": 0.06473225728242527,
+                "max_drawdown_len": 685,
+                "total_trades": 12,
+                "won_trades": 3,
+                "lost_trades": 9,
+                "win_rate": 25.0,
+                "annual_return": -1.2021791246920273e-05,
+                "total_return_pct": -0.018681863597714104,
+                "final_value": 9998.131988135376,
+                "profit_factor": 1.0
+            }
+        },
+        {
+            "params": {
+                "entry_period": 30,
+                "exit_period": 15,
+                "atr_period": 10,
+                "risk_pct": 0.01,
+                "use_vol_filter": true,
+                "vol_lookback": 100,
+                "vol_threshold": 1.2
+            },
+            "metrics": {
+                "sharpe_ratio": -3.1469722893425263,
+                "max_drawdown_pct": 0.06473225728241931,
+                "max_drawdown_len": 685,
+                "total_trades": 12,
+                "won_trades": 3,
+                "lost_trades": 9,
+                "win_rate": 25.0,
+                "annual_return": -1.3037942551030168e-05,
+                "total_return_pct": -0.02026096272430088,
+                "final_value": 9997.974108967013,
+                "profit_factor": 1.0
+            }
+        }
+    ]
+}

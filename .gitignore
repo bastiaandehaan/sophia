@@ -1,0 +1,15 @@
+# Python gerelateerde bestanden
+__pycache__/
+*.py[cod]
+*$py.class
+.coverage
+
+# Virtuele omgevingen
+.venv/
+venv/
+
+# Log bestanden
+*.log
+
+# IDE specifieke bestanden
+.idea/

@@ -1,0 +1,10 @@
+{
+    "strategy": "turtle",
+    "symbols": [
+        "EURUSD",
+        "USDJPY"
+    ],
+    "timeframe": "H4",
+    "risk": 0.01,
+    "interval": 300
+}
