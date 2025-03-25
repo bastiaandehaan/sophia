@@ -1,58 +1,76 @@
 import pandas as pd
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import pytest
-from your_module import EMAStrategy, RiskManager, \
-    MT5Connector  # Vervang 'your_module' door de juiste module naam
+import sys
+import importlib
 
+# Mock MetaTrader5 om importfouten te vermijden
+sys.modules['MetaTrader5'] = MagicMock()
+
+# Forceer reload van de module
+if 'src.strategies.turtle_strategy' in sys.modules:
+    del sys.modules['src.strategies.turtle_strategy']
+importlib.import_module('src.strategies.turtle_strategy')
+from src.strategies.turtle_strategy import TurtleStrategy
+from src.core.risk import RiskManager
+from src.core.connector import MT5Connector
 
 @pytest.mark.integration
-def test_ema_strategy_full_workflow():
+def test_turtle_strategy_full_workflow():
     # Arrange
     connector = MT5Connector(
-        {"mt5_path": "test_path", "login": 123, "password": "test",
-         "server": "test"}
+        {"mt5_path": "test_path", "login": 123, "password": "test", "server": "test"}
     )
     connector.mt5 = MagicMock()
     connector.mt5.initialize.return_value = True
 
-    # Simuleer een EMA-crossover met dalende en stijgende close-prijzen
+    # Maak historische data met een duidelijke breakout (voldoende bars)
     historical_data = pd.DataFrame({
-        "time": pd.date_range(start="2023-01-01", periods=50, freq="4H"),
-        "open": [1.2] * 50,
-        "high": [1.21] * 50,
-        "low": [1.19] * 50,
-        "close": [1.2] * 30 + [1.18] * 10 + [1.25] * 10  # Daling, dan stijging
+        "time": pd.date_range(start="2023-01-01", periods=230, freq="D"),
+        "open": [1.0] * 230,
+        "high": [1.1] * 220 + [1.5] * 10,  # Breakout in de laatste 10 bars
+        "low": [0.9] * 230,
+        "close": [1.0] * 220 + [1.4] * 9 + [1.6]  # Extreme stijging
     })
 
-    # Mock de get_historical_data methode
+    # Configureer mocks
     connector.get_historical_data = MagicMock(return_value=historical_data)
     connector.get_account_info = MagicMock(return_value={"balance": 10000.0})
-    connector.place_order = MagicMock(
-        return_value={"success": True, "order_id": "12345"})
+    connector.place_order = MagicMock(return_value={"success": True, "order_id": "12345"})
 
-    # Configureer RiskManager
-    risk_manager = RiskManager({"risk_per_trade": 0.01, "max_daily_loss": 0.05})
-    risk_manager.calculate_position_size = MagicMock(return_value=0.1)
+    # Patch RiskManager.calculate_position_size
+    with patch.object(RiskManager, 'calculate_position_size', return_value=0.1):
+        risk_manager = RiskManager({"risk_per_trade": 0.01, "max_daily_loss": 0.05})
 
-    strategy = EMAStrategy(
-        connector,
-        risk_manager,
-        {
-            "fast_ema": 9,  # Snelle EMA
-            "slow_ema": 21,  # Langzame EMA
-            "signal_ema": 5  # Signaal EMA
-        }
-    )
+        strategy = TurtleStrategy(
+            connector,
+            risk_manager,
+            {
+                "entry_period": 20,
+                "exit_period": 10,
+                "atr_period": 14,
+                "vol_filter": False,
+                "trend_filter": False
+            }
+        )
 
-    # Mock logger
-    strategy.logger = MagicMock()
+        # Mock logger met echte output voor debugging
+        strategy.logger = MagicMock()
+        strategy.logger.debug = print
+        strategy.logger.info = print
+        strategy.testing = True
 
-    # Act
-    signal_result = strategy.check_signals("EURUSD")
+        # Act
+        data = strategy.calculate_indicators(historical_data)
+        print("Laatste entry_high:", data["entry_high"].iloc[-1])
+        print("Laatste close:", data["close"].iloc[-1])
 
-    # Assert
-    assert signal_result["signal"] in ["BUY",
-                                       "SELL"], "EMA-crossover zou een signaal moeten genereren"
-    # Optioneel: specificeer BUY als je zeker weet dat fast_ema > slow_ema na de stijging
-    assert signal_result[
-               "signal"] == "BUY", "Moet een BUY-signaal genereren na crossover"
+        # Extra debug: print het pad van de gebruikte TurtleStrategy
+        print("Gebruikte TurtleStrategy module:", TurtleStrategy.__module__)
+        print("Bestandspad:", sys.modules['src.strategies.turtle_strategy'].__file__)
+
+        signal_result = strategy.check_signals("EURUSD", data=historical_data)  # Data expliciet meegeven
+        print("Signaal resultaat:", signal_result)
+
+        # Assert
+        assert signal_result["signal"] == "BUY", "Moet een BUY-signaal genereren bij breakout"
